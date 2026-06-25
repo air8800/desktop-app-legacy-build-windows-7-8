@@ -4,7 +4,7 @@
   "version": "1.1.0-legacy",
   "description": "PrintGet Shop Manager — desktop app for print shop partners",
   "author": "PrintGet",
-  "repository": "https://github.com/air8800/desktop-app-legacy",
+  "repository": "https://github.com/air8800/desktop-app-legacy-build-windows-7-8",
   "license": "UNLICENSED",
   "main": "electron/main.js",
   "scripts": {
