@@ -72,7 +72,7 @@
       {
         "provider": "github",
         "owner": "air8800",
-        "repo": "desktop-app-3",
+        "repo": "desktop-app-legacy-build-windows-7-8",
         "releaseType": "release"
       }
     ],
