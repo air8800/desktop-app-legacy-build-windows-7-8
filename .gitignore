@@ -44,3 +44,5 @@ release/
 
 # OS
 Thumbs.db
+.kilo/worktrees/camp-crate
+/.kilo/worktrees
