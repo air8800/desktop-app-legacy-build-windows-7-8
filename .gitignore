@@ -1,6 +1,5 @@
 # Dependencies
 node_modules/
-package-lock.json
 
 # Build outputs
 dist/
@@ -44,5 +43,3 @@ release/
 
 # OS
 Thumbs.db
-.kilo/worktrees/camp-crate
-/.kilo/worktrees
