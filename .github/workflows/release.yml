@@ -1,0 +1,34 @@
+name: Build and Publish Release
+
+on:
+  workflow_dispatch: # This allows you to click a button on GitHub to trigger the release
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: windows-latest
+    permissions:
+      contents: write # Required for creating releases
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Build and Publish
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Skip native module rebuild (no native Electron modules in this app)
+          ELECTRON_BUILDER_SKIP_REBUILD: 'true'
+        run: npm run dist -- --publish always

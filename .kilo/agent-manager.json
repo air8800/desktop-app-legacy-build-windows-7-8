@@ -1,0 +1,20 @@
+{
+  "worktrees": {
+    "wt-1777233063192-1": {
+      "branch": "camp-crate",
+      "path": "c:\\Users\\pro35\\Downloads\\desktop-app-3 3\\desktop-app-3\\.kilo\\worktrees\\camp-crate",
+      "parentBranch": "main",
+      "createdAt": "2026-04-26T19:51:03.192Z",
+      "remote": "origin"
+    }
+  },
+  "sessions": {},
+  "tabOrder": {
+    "local": [
+      "pending:1"
+    ]
+  },
+  "worktreeOrder": [
+    "wt-1777233063192-1"
+  ]
+}
