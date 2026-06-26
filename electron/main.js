@@ -512,8 +512,10 @@ app.whenReady().then(() => {
       }
     };
 
-    autoUpdater.autoDownload = true;
+    autoUpdater.autoDownload = false;       // ← we control when to download
     autoUpdater.autoInstallOnAppQuit = true;
+
+    let updateDownloaded = false;  // guard: never re-download if already done
 
     autoUpdater.on('checking-for-update', () => {
       console.log('🔍 Checking for updates...');
@@ -523,6 +525,12 @@ app.whenReady().then(() => {
     autoUpdater.on('update-available', (info) => {
       console.log('🆕 Update available:', info.version);
       sendUpdateEvent('available', { version: info.version, releaseNotes: info.releaseNotes });
+      // Only start the download if we haven't already downloaded it
+      if (!updateDownloaded) {
+        autoUpdater.downloadUpdate().catch(err => {
+          console.error('Failed to start download:', err);
+        });
+      }
     });
 
     autoUpdater.on('update-not-available', (info) => {
@@ -542,6 +550,7 @@ app.whenReady().then(() => {
 
     autoUpdater.on('update-downloaded', (info) => {
       console.log('✅ Update downloaded, ready to install:', info.version);
+      updateDownloaded = true;   // ← stop any further re-downloads
       sendUpdateEvent('downloaded', { version: info.version });
     });
 
@@ -557,9 +566,11 @@ app.whenReady().then(() => {
       });
     }, 3000);
 
-    // Also re-check every 2 hours
+    // Re-check every 2 hours — but skip if already downloaded
     setInterval(() => {
-      autoUpdater.checkForUpdates().catch(console.error);
+      if (!updateDownloaded) {
+        autoUpdater.checkForUpdates().catch(console.error);
+      }
     }, 2 * 60 * 60 * 1000);
   }
 
@@ -815,30 +826,46 @@ ipcMain.handle('get-printers', async () => {
 
     if (process.platform === 'win32') {
       try {
-        // Keywords that identify virtual / software printers
-        const VIRTUAL_KEYWORDS = [
+        // --- Port-based virtual printer detection ---
+        // Physical printers use USB/LPT/COM/WSD/IP ports.
+        // Virtual/software printers use PORTPROMPT, FILE, NUL, TS (RDP), etc.
+        const PHYSICAL_PORT_PREFIXES = ['USB', 'LPT', 'COM', 'WSD-', 'IP_', 'IP '];
+
+        // Name-based fallback for printers that might have non-standard ports
+        const VIRTUAL_NAME_KEYWORDS = [
           'pdf', 'xps', 'fax', 'onenote', 'microsoft print', 'microsoft xps',
           'adobe pdf', 'cutepdf', 'dopdf', 'bullzip', 'foxit', 'nitro',
-          'primopdf', 'pdf24', 'pdfcreator', 'docuprint', 'print to',
-          'send to', 'snagit', 'camtasia', 'image writer', 'ghostscript'
+          'primopdf', 'pdf24', 'pdfcreator', 'print to', 'send to',
+          'snagit', 'camtasia', 'image writer', 'ghostscript', 'docuprint'
         ];
-        const isVirtualPrinter = (name) => {
-          const lower = name.toLowerCase();
-          return VIRTUAL_KEYWORDS.some(kw => lower.includes(kw));
+
+        const isVirtualByPort = (portName) => {
+          if (!portName) return true; // no port = virtual
+          const up = portName.toUpperCase().trim();
+          // Known physical port prefixes → NOT virtual
+          if (PHYSICAL_PORT_PREFIXES.some(p => up.startsWith(p))) return false;
+          // Network share paths (\\server\printer) → NOT virtual
+          if (up.startsWith('\\\\')) return false;
+          // Everything else (PORTPROMPT, FILE, NUL, TS*, MSFAX, etc.) → virtual
+          return true;
         };
 
-        // Use PowerShell command with proper syntax
+        const isVirtualByName = (name) => {
+          const lower = name.toLowerCase();
+          return VIRTUAL_NAME_KEYWORDS.some(kw => lower.includes(kw));
+        };
+
+        // Fetch Name, PrinterStatus, IsDefault AND PortName
         const { stdout } = await execPromise(
-          'powershell.exe -Command "Get-Printer | Select-Object Name,PrinterStatus,IsDefault | ConvertTo-Json"'
+          'powershell.exe -Command "Get-Printer | Select-Object Name,PrinterStatus,IsDefault,PortName | ConvertTo-Json"'
         );
         if (stdout) {
           const systemPrinters = JSON.parse(stdout);
-          // Handle both single printer and multiple printers cases
           const printersArray = Array.isArray(systemPrinters) ? systemPrinters : [systemPrinters];
           printers = printersArray.map(printer => ({
             name: printer.Name,
             status: printer.PrinterStatus === 1 ? 'Ready' : 'Not Ready',
-            isVirtual: isVirtualPrinter(printer.Name),
+            isVirtual: isVirtualByPort(printer.PortName) || isVirtualByName(printer.Name),
             default: printer.IsDefault || false
           }));
         }

@@ -28,24 +28,37 @@ const UpdateBanner: React.FC = () => {
   const handleUpdaterEvent = useCallback((data: any) => {
     switch (data.event) {
       case 'checking':
-        setState({ status: 'checking' });
+        setState(prev => {
+          // Don't overwrite a 'downloaded' state with 'checking'
+          if (prev.status === 'downloaded') return prev;
+          return { status: 'checking' };
+        });
         setDismissed(false);
         break;
       case 'available':
-        setState({ status: 'available', version: data.version });
+        setState(prev => {
+          if (prev.status === 'downloaded') return prev;
+          return { status: 'available', version: data.version };
+        });
         setDismissed(false);
         break;
       case 'not-available':
         // Only show "up to date" briefly if user manually checked
-        setState({ status: 'up-to-date', version: data.version });
-        setTimeout(() => setState({ status: 'idle' }), 4000);
+        setState(prev => {
+          if (prev.status === 'downloaded') return prev;
+          return { status: 'up-to-date', version: data.version };
+        });
+        setTimeout(() => setState(prev => prev.status === 'up-to-date' ? { status: 'idle' } : prev), 4000);
         break;
       case 'progress':
-        setState(prev => ({
-          status: 'downloading',
-          percent: data.percent,
-          version: prev.status === 'available' ? (prev as any).version : undefined,
-        }));
+        setState(prev => {
+          if (prev.status === 'downloaded') return prev;
+          return {
+            status: 'downloading',
+            percent: data.percent,
+            version: prev.status === 'available' ? (prev as any).version : undefined,
+          };
+        });
         setDismissed(false);
         break;
       case 'downloaded':
@@ -54,8 +67,15 @@ const UpdateBanner: React.FC = () => {
         break;
       case 'error':
         // Don't show trivial network errors — only show if meaningful
-        if (!data.message?.includes('net::ERR_') && !data.message?.includes('ENOTFOUND')) {
-          setState({ status: 'error', message: data.message });
+        // Also don't overwrite a 'downloaded' state with an error
+        if (
+          !data.message?.includes('net::ERR_') &&
+          !data.message?.includes('ENOTFOUND')
+        ) {
+          setState(prev => {
+            if (prev.status === 'downloaded') return prev;
+            return { status: 'error', message: data.message };
+          });
         }
         break;
     }
