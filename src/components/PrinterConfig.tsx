@@ -542,7 +542,7 @@ const PrinterConfig: React.FC<PrinterConfigProps> = ({
                   <option value="">Select a printer</option>
                   {printers.map(printer => (
                     <option key={printer.name} value={printer.name}>
-                      {printer.name} {printer.status === 'Ready' ? '✓' : '⚠️'}
+                      {printer.name}{printer.isVirtual ? ' (Virtual)' : ''}
                     </option>
                   ))}
                 </select>
@@ -695,7 +695,7 @@ const PrinterConfig: React.FC<PrinterConfigProps> = ({
                   <option value="">Select a printer to assign</option>
                   {printers.map(printer => (
                     <option key={printer.name} value={printer.name}>
-                      {printer.name} {printer.status === 'Ready' ? '✓' : '⚠️'}
+                      {printer.name}{printer.isVirtual ? ' (Virtual)' : ''}
                     </option>
                   ))}
                 </select>

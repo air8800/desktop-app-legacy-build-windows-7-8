@@ -815,6 +815,18 @@ ipcMain.handle('get-printers', async () => {
 
     if (process.platform === 'win32') {
       try {
+        // Keywords that identify virtual / software printers
+        const VIRTUAL_KEYWORDS = [
+          'pdf', 'xps', 'fax', 'onenote', 'microsoft print', 'microsoft xps',
+          'adobe pdf', 'cutepdf', 'dopdf', 'bullzip', 'foxit', 'nitro',
+          'primopdf', 'pdf24', 'pdfcreator', 'docuprint', 'print to',
+          'send to', 'snagit', 'camtasia', 'image writer', 'ghostscript'
+        ];
+        const isVirtualPrinter = (name) => {
+          const lower = name.toLowerCase();
+          return VIRTUAL_KEYWORDS.some(kw => lower.includes(kw));
+        };
+
         // Use PowerShell command with proper syntax
         const { stdout } = await execPromise(
           'powershell.exe -Command "Get-Printer | Select-Object Name,PrinterStatus,IsDefault | ConvertTo-Json"'
@@ -826,6 +838,7 @@ ipcMain.handle('get-printers', async () => {
           printers = printersArray.map(printer => ({
             name: printer.Name,
             status: printer.PrinterStatus === 1 ? 'Ready' : 'Not Ready',
+            isVirtual: isVirtualPrinter(printer.Name),
             default: printer.IsDefault || false
           }));
         }

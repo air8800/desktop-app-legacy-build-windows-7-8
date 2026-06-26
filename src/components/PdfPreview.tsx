@@ -994,7 +994,7 @@ const PdfPreview: React.FC<PdfPreviewProps> = ({
                 <option value="">Choose Printer</option>
                 {availablePrinters.map((printer) => (
                   <option key={printer.name} value={printer.name}>
-                    {printer.name} {printer.status === 'Ready' ? '✓' : '⚠️'} {printer.default ? '(Default)' : ''}
+                    {printer.name}{printer.isVirtual ? ' (Virtual)' : ''} {printer.default ? '(Default)' : ''}
                   </option>
                 ))}
               </select>

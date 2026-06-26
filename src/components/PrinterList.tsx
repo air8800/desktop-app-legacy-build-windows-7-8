@@ -1,6 +1,6 @@
 import React from 'react';
 import { Printer } from '../types';
-import { Printer as PrinterIcon, Check, AlertCircle, RefreshCw } from 'lucide-react';
+import { Printer as PrinterIcon, RefreshCw } from 'lucide-react';
 
 interface PrinterListProps {
   printers: Printer[];
@@ -53,20 +53,12 @@ const PrinterList: React.FC<PrinterListProps> = ({ printers, isLoading, onRefres
                   <h3 className="font-semibold text-gray-900 dark:text-white truncate" title={printer.name}>
                     {printer.name}
                   </h3>
-                  <span
-                    className={`inline-flex items-center mt-2 px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                      printer.status === 'Ready'
-                        ? 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300'
-                        : 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300'
-                    }`}
-                  >
-                    {printer.status === 'Ready' ? (
-                      <Check className="h-3 w-3 mr-1 shrink-0" />
-                    ) : (
-                      <AlertCircle className="h-3 w-3 mr-1 shrink-0" />
-                    )}
-                    {printer.status}
-                  </span>
+                  {printer.isVirtual && (
+                    <span className="inline-flex items-center mt-2 px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300">
+                      <PrinterIcon className="h-3 w-3 mr-1 shrink-0" />
+                      Virtual Printer
+                    </span>
+                  )}
                 </div>
               </div>
             </div>

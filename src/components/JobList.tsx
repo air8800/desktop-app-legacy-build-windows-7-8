@@ -2325,7 +2325,7 @@ const JobList: React.FC<JobListProps> = ({ jobs, onMarkPrinted, onPrintStarted, 
                     className="w-full p-3 flex items-center justify-between bg-gray-50 dark:bg-gray-700 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
                   >
                     <div className="flex items-center">
-                      <div className={`w-2 h-2 rounded-full mr-3 ${printer.status === 'Ready' ? 'bg-green-500' : 'bg-yellow-500'}`}></div>
+                      <div className={`w-2 h-2 rounded-full mr-3 ${printer.isVirtual ? 'bg-purple-500' : 'bg-green-500'}`}></div>
                       <span className="font-medium">{printer.name}</span>
                     </div>
                     <div className="flex items-center gap-2">
