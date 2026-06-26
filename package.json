@@ -1,7 +1,7 @@
 {
   "name": "printget-shop-manager",
   "private": true,
-  "version": "1.1.0-legacy",
+  "version": "1.1.0",
   "description": "PrintGet Shop Manager — desktop app for print shop partners",
   "author": "PrintGet",
   "repository": "https://github.com/air8800/desktop-app-legacy-build-windows-7-8",
@@ -65,9 +65,9 @@
   },
   "build": {
     "appId": "com.printget.shopmanager",
-    "productName": "PrintGet Shop Manager",
+    "productName": "PrintGet Shop Manager Legacy",
     "copyright": "Copyright © 2026 PrintGet",
-    "artifactName": "PrintGet-Shop-Manager-Setup-${version}.${ext}",
+    "artifactName": "PrintGet-Shop-Manager-Legacy-Setup-${version}.${ext}",
     "publish": [
       {
         "provider": "github",
