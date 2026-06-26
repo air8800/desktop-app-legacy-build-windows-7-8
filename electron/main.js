@@ -596,11 +596,24 @@ ipcMain.handle('app-quit-confirmed', async () => {
 ipcMain.handle('updater-install-now', async () => {
   try {
     allowQuit = true;
+    const store = new Store();
+    store.set('updateCompleted', true); // flag for next boot
     autoUpdater.quitAndInstall(false, true);
     return { success: true };
   } catch (err) {
     return { success: false, error: err.message };
   }
+});
+
+ipcMain.handle('get-update-completed-status', () => {
+  const store = new Store();
+  return store.get('updateCompleted', false);
+});
+
+ipcMain.handle('clear-update-completed-status', () => {
+  const store = new Store();
+  store.set('updateCompleted', false);
+  return true;
 });
 
 ipcMain.handle('updater-check-now', async () => {

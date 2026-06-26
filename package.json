@@ -1,7 +1,7 @@
 {
   "name": "printget-shop-manager",
   "private": true,
-  "version": "1.1.3",
+  "version": "1.1.6",
   "description": "PrintGet Shop Manager — desktop app for print shop partners",
   "author": "PrintGet",
   "repository": "https://github.com/air8800/desktop-app-legacy-build-windows-7-8",
@@ -101,7 +101,17 @@
         "filter": [
           "**/*",
           "!**/test pdf.pdf",
-          "!**/Examples/**"
+          "!**/Examples/**",
+          "!**/InstallLog/**",
+          "!**/coverpages/**",
+          "!**/AttachmentPlaceholders/**",
+          "!**/unins000.*",
+          "!**/License.txt",
+          "!**/ReadMe.txt",
+          "!**/PDFsharp License.txt",
+          "!**/2printer-install.ini",
+          "!**/ed32/**",
+          "!**/ed64/**"
         ]
       }
     ],

@@ -116,5 +116,7 @@ contextBridge.exposeInMainWorld(
     installUpdate: () => ipcRenderer.invoke("updater-install-now"),
     checkForUpdates: () => ipcRenderer.invoke("updater-check-now"),
     getAppVersion: () => ipcRenderer.invoke("updater-get-version"),
+    getUpdateCompletedStatus: () => ipcRenderer.invoke("get-update-completed-status"),
+    clearUpdateCompletedStatus: () => ipcRenderer.invoke("clear-update-completed-status"),
   }
 );

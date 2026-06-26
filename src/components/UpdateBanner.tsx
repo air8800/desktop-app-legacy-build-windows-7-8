@@ -8,7 +8,8 @@ type UpdateState =
   | { status: 'downloading'; percent: number; version?: string }
   | { status: 'downloaded'; version: string }
   | { status: 'error'; message: string }
-  | { status: 'up-to-date'; version: string };
+  | { status: 'up-to-date'; version: string }
+  | { status: 'completed' };
 
 const UpdateBanner: React.FC = () => {
   const [state, setState] = useState<UpdateState>({ status: 'idle' });
@@ -16,11 +17,24 @@ const UpdateBanner: React.FC = () => {
   const [installing, setInstalling] = useState(false);
   const [appVersion, setAppVersion] = useState<string>('');
 
-  // Fetch current app version on mount
+  // Fetch current app version on mount and check if we just updated
   useEffect(() => {
     if (window.electron?.getAppVersion) {
       window.electron.getAppVersion().then((res: any) => {
         if (res?.version) setAppVersion(res.version);
+      }).catch(() => {});
+    }
+    
+    // Check if we just completed an update
+    if (window.electron?.getUpdateCompletedStatus) {
+      window.electron.getUpdateCompletedStatus().then((completed: boolean) => {
+        if (completed) {
+          setState({ status: 'completed' });
+          setDismissed(false);
+          // Hide it automatically after a few seconds
+          setTimeout(() => setState(prev => prev.status === 'completed' ? { status: 'idle' } : prev), 6000);
+          window.electron.clearUpdateCompletedStatus?.();
+        }
       }).catch(() => {});
     }
   }, []);
@@ -163,10 +177,20 @@ const UpdateBanner: React.FC = () => {
               ) : (
                 <>
                   <RefreshCw className="h-3 w-3" />
-                  Restart & Install
+                  Restart to install update
                 </>
               )}
             </button>
+          </div>
+        );
+
+      case 'completed':
+        return (
+          <div className="flex items-center gap-2">
+            <CheckCircle className="h-4 w-4 text-emerald-400" />
+            <span className="text-xs font-medium text-emerald-100">
+              Update completed successfully! You are now on v{appVersion}
+            </span>
           </div>
         );
 
@@ -183,13 +207,16 @@ const UpdateBanner: React.FC = () => {
       case 'error':
         return (
           <div className="flex items-center gap-2">
-            <AlertCircle className="h-3.5 w-3.5 text-red-400" />
-            <span className="text-xs font-medium text-gray-300 truncate max-w-[200px]" title={state.message}>
-              Update check failed
-            </span>
+            <AlertCircle className="h-3.5 w-3.5 text-red-400 shrink-0" />
+            <div className="flex flex-col">
+              <span className="text-xs font-bold text-red-300">Update failed</span>
+              <span className="text-[10px] text-gray-300 max-w-[250px] truncate" title={state.message}>
+                {state.message || "Unknown error"}
+              </span>
+            </div>
             <button
               onClick={handleManualCheck}
-              className="ml-1 px-2 py-0.5 text-xs text-blue-300 hover:text-blue-200 underline transition-colors"
+              className="ml-2 px-2 py-1 text-xs bg-gray-800 hover:bg-gray-700 text-white rounded transition-colors"
             >
               Retry
             </button>
