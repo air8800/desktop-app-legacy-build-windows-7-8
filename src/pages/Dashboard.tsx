@@ -835,7 +835,12 @@ const Dashboard: React.FC = () => {
               <Activity className="h-6 w-6 text-white" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-gradient-primary">Dashboard</h1>
+              <h1 className="text-2xl font-bold text-gradient-primary flex items-center gap-2">
+                Dashboard
+                <span className="ml-3 px-3 py-1 bg-emerald-100 text-emerald-700 text-sm rounded-full font-semibold border border-emerald-300">
+                  🚀 v1.1.9 Auto-Updater Verified!
+                </span>
+              </h1>
               <div className="flex items-center gap-3">
                 <p className="text-gray-600 dark:text-gray-400">Monitor your shop's performance and activity</p>
 

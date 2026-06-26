@@ -516,6 +516,7 @@ app.whenReady().then(() => {
     autoUpdater.autoInstallOnAppQuit = true;
 
     let updateDownloaded = false;  // guard: never re-download if already done
+    let isDownloading = false;     // guard: prevent concurrent downloads
 
     autoUpdater.on('checking-for-update', () => {
       console.log('🔍 Checking for updates...');
@@ -525,9 +526,11 @@ app.whenReady().then(() => {
     autoUpdater.on('update-available', (info) => {
       console.log('🆕 Update available:', info.version);
       sendUpdateEvent('available', { version: info.version, releaseNotes: info.releaseNotes });
-      // Only start the download if we haven't already downloaded it
-      if (!updateDownloaded) {
+      // Only start the download if we haven't already downloaded it and aren't currently downloading
+      if (!updateDownloaded && !isDownloading) {
+        isDownloading = true;
         autoUpdater.downloadUpdate().catch(err => {
+          isDownloading = false;
           console.error('Failed to start download:', err);
         });
       }
@@ -551,10 +554,12 @@ app.whenReady().then(() => {
     autoUpdater.on('update-downloaded', (info) => {
       console.log('✅ Update downloaded, ready to install:', info.version);
       updateDownloaded = true;   // ← stop any further re-downloads
+      isDownloading = false;
       sendUpdateEvent('downloaded', { version: info.version });
     });
 
     autoUpdater.on('error', (err) => {
+      isDownloading = false;
       console.error('❌ Auto-updater error:', err.message);
       sendUpdateEvent('error', { message: err.message });
     });
