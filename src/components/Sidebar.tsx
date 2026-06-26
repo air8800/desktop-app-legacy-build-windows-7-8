@@ -43,7 +43,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar, currentUser, o
   return (
     <div
       className={`${isOpen ? 'w-64' : 'w-16'
-        } h-screen backdrop-blur-glass bg-white/90 dark:bg-gray-900/90 text-gray-800 dark:text-white shadow-2xl transition-all duration-300 ease-in-out flex flex-col relative flex-shrink-0 border-r border-gray-200/30 dark:border-gray-700/30 sidebar-container`}
+        } h-screen z-40 backdrop-blur-glass bg-white/90 dark:bg-gray-900/90 text-gray-800 dark:text-white shadow-2xl transition-all duration-300 ease-in-out flex flex-col relative flex-shrink-0 border-r border-gray-200/30 dark:border-gray-700/30 sidebar-container`}
       onClick={handleEmptyAreaClick}
     >
       {/* Header */}
