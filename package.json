@@ -118,7 +118,7 @@
     "win": {
       "target": [
         {
-          "target": "nsis",
+          "target": "nsis-web",
           "arch": [
             "x64",
             "ia32"
@@ -130,7 +130,7 @@
       "legalTrademarks": "PrintGet Shop Manager",
       "requestedExecutionLevel": "asInvoker"
     },
-    "nsis": {
+    "nsisWeb": {
       "oneClick": false,
       "perMachine": false,
       "allowToChangeInstallationDirectory": true,

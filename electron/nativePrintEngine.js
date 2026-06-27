@@ -75,48 +75,7 @@ const isPDFtoPrinterAvailable = (isDev) => {
   return fs.existsSync(pdfToPrinterPath);
 };
 
-// 2Printer.exe path helpers (best control: papersize, tray, scale via CMD)
-const get2PrinterPath = (isDev) => {
-  // Define potential base directories
-  const potentialDirs = [
-    isDev ? path.join(__dirname, '..', 'extraResources') : null,
-    process.resourcesPath ? path.join(process.resourcesPath, 'extraResources') : null,
-    path.join(__dirname, '..', '..', 'extraResources'), // In case structure differs
-    process.cwd() // Root check
-  ].filter(Boolean);
 
-  console.log('🔍 Checking for 2Printer in dirs:', potentialDirs);
-
-  for (const baseDir of potentialDirs) {
-    // Check inside "2Printer" subfolder (full installation)
-    let possiblePath = path.join(baseDir, '2Printer', '2Printer.exe');
-    if (fs.existsSync(possiblePath)) {
-      console.log('✅ Found 2Printer at:', possiblePath);
-      return possiblePath;
-    }
-
-    // Check direct path
-    possiblePath = path.join(baseDir, '2Printer.exe');
-    if (fs.existsSync(possiblePath)) {
-      console.log('✅ Found 2Printer at:', possiblePath);
-      return possiblePath;
-    }
-  }
-
-  console.log('❌ 2Printer not found in any standard location');
-
-  // Fallback to standard Dev path to avoid returning null/undefined
-  const fallback = isDev
-    ? path.join(__dirname, '..', 'extraResources', '2Printer', '2Printer.exe')
-    : path.join(process.resourcesPath, 'extraResources', '2Printer', '2Printer.exe');
-
-  return fallback;
-};
-
-const is2PrinterAvailable = (isDev) => {
-  const printerPath = get2PrinterPath(isDev);
-  return fs.existsSync(printerPath);
-};
 
 // ============================================================================
 // PRINT JOB SERIALIZATION (prevents "PDFtoPrinter is already at work" errors)
@@ -681,91 +640,6 @@ const processPdf = async (inputPath, options = {}) => {
   }
 };
 
-// ============================================================================
-// 2PRINTER — Full CLI control: papersize, copies, scale, orient, color via -props
-// NOTE: 2Printer papersize takes numeric DMPAPERSIZE IDs (e.g. 9=A4, 5=Legal, 1=Letter),
-// NOT paper size names. See WINDOWS_PAPER_SIZES above for the mapping.
-// ============================================================================
-
-const printWith2Printer = async (filePath, printerName, options = {}, isDev = true) => {
-  const {
-    copies = 1,
-    paperSize = 'A4',
-    colorMode = 'color',
-    nupOrientation = 'portrait'
-  } = options;
-
-  const lock = acquirePrintLock();
-
-  try {
-    await lock.waitForTurn;
-    console.log('🔒 Print lock acquired for 2Printer');
-
-    const twoPrinterPath = get2PrinterPath(isDev);
-
-    if (!fs.existsSync(twoPrinterPath)) {
-      throw new Error(`2Printer.exe not found at: ${twoPrinterPath}`);
-    }
-
-    if (!fs.existsSync(filePath)) {
-      throw new Error(`PDF file not found: ${filePath}`);
-    }
-
-    const numericPaperId = WINDOWS_PAPER_SIZES[paperSize];
-    const colorValue = (colorMode === 'grayscale' || colorMode === 'BW') ? 'grayscale' : 'color';
-    const orientValue = nupOrientation === 'landscape' ? 'landscape' : 'portrait';
-
-    let propsArgs = [
-      `copies:${copies}`,
-      `scale:fit`,
-      `orient:${orientValue}`,
-      `color:${colorValue}`
-    ];
-
-    if (numericPaperId) {
-      propsArgs.push(`papersize:${numericPaperId}`);
-      console.log(`📄 2Printer paper size: ${paperSize} → numeric ID ${numericPaperId}`);
-    } else {
-      console.warn(`⚠️ No numeric paper ID for ${paperSize}, 2Printer will use printer defaults`);
-    }
-
-    const propsStr = propsArgs.join(' ');
-    const iniPath = path.join(__dirname, '..', '2Printer_utf8.ini');
-    const command = `"${twoPrinterPath}" -src "${filePath}" -prn "${printerName}" -props ${propsStr} -options silent:yes alerts:no skip_prn_enum:yes -inipath "${iniPath}"`;
-
-    console.log('🖨️ 2Printer command:', command);
-
-    const result = await execPromise(command, {
-      cwd: path.dirname(twoPrinterPath),
-      maxBuffer: 1024 * 1024
-    });
-
-    console.log('📋 2Printer stdout:', result.stdout || '(none)');
-    if (result.stderr) {
-      console.warn('⚠️ 2Printer stderr:', result.stderr);
-    }
-
-    console.log('✅ 2Printer print job sent successfully');
-
-    return {
-      success: true,
-      message: `Printed via 2Printer with papersize:${paperSize} (ID ${numericPaperId || 'default'})`,
-      engine: '2Printer',
-      paperSize
-    };
-
-  } catch (error) {
-    console.error('❌ 2Printer failed:', error.message);
-    if (error.stderr) console.error('📋 2Printer stderr:', error.stderr);
-    if (error.stdout) console.error('📋 2Printer stdout:', error.stdout);
-    if (error.code) console.error('📋 2Printer exit code:', error.code);
-    if (error.killed) console.error('📋 2Printer was killed (timeout)');
-    throw error;
-  } finally {
-    lock.release();
-    console.log('🔓 Print lock released (2Printer)');
-  }
-};
 
 const printWithSumatra = async (filePath, printerName, options = {}, isDev = true) => {
   try {
@@ -1050,10 +924,7 @@ module.exports = {
   getPDFtoPrinterPath,
   isPDFtoPrinterAvailable,
   printWithPDFtoPrinter,
-  // 2Printer functions (fallback — paid $149)
-  get2PrinterPath,
-  is2PrinterAvailable,
-  printWith2Printer,
+
   // Total PDF Printer helpers
   getPDFPrinterAppPath,
   isPDFPrinterAppAvailable
