@@ -516,7 +516,14 @@ app.whenReady().then(() => {
 
     autoUpdater.autoDownload = false;       // ← we control when to download
     autoUpdater.autoInstallOnAppQuit = true;
-    autoUpdater.verifyUpdateCodeSignature = () => Promise.resolve(null); // ← required for unsigned apps!
+    
+    // Explicitly configure GitHub feed so Squirrel doesn't look for app-update.yml
+    autoUpdater.setFeedURL({
+      provider: 'github',
+      owner: 'air8800',
+      repo: 'desktop-app-legacy-build-windows-7-8',
+      releaseType: 'release'
+    });
 
     let updateDownloaded = false;  // guard: never re-download if already done
     let isDownloading = false;     // guard: prevent concurrent downloads
