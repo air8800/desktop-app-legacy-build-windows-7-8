@@ -1,7 +1,7 @@
 {
   "name": "printget-shop-manager",
   "private": true,
-  "version": "1.1.12",
+  "version": "1.1.13",
   "description": "PrintGet Shop Manager — desktop app for print shop partners",
   "author": "PrintGet",
   "repository": "https://github.com/air8800/desktop-app-legacy-build-windows-7-8",
