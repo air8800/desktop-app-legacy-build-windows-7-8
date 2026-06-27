@@ -845,6 +845,7 @@ const Dashboard: React.FC = () => {
             <div>
               <h1 className="text-2xl font-bold text-gradient-primary flex items-center gap-2">
                 Dashboard
+                <span className="text-xs bg-green-500 text-white px-2 py-1 rounded-full ml-2 shadow-sm animate-pulse">NEW VERSION</span>
               </h1>
               <div className="flex items-center gap-3">
                 <p className="text-gray-600 dark:text-gray-400">Monitor your shop's performance and activity</p>
