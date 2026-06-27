@@ -845,11 +845,7 @@ const Dashboard: React.FC = () => {
             <div>
               <h1 className="text-2xl font-bold text-gradient-primary flex items-center gap-2">
                 Dashboard
-                {appVersion && (
-                  <span className="text-xs font-normal px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-full">
-                    v{appVersion}
-                  </span>
-                )}
+
               </h1>
               <div className="flex items-center gap-3">
                 <p className="text-gray-600 dark:text-gray-400">Monitor your shop's performance and activity</p>
