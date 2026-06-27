@@ -132,7 +132,7 @@ const UpdateBanner: React.FC = () => {
           <div className="flex items-center gap-2">
             <Download className="h-3.5 w-3.5 text-blue-400 animate-pulse" />
             <span className="text-xs font-medium text-gray-200">
-              Update <span className="text-blue-300 font-semibold">v{state.version}</span> downloading...
+              Update <span className="text-blue-300 font-semibold">v{state.version}</span> downloading... (Test build)
             </span>
           </div>
         );
@@ -143,7 +143,7 @@ const UpdateBanner: React.FC = () => {
             <Download className="h-3.5 w-3.5 text-blue-400 shrink-0" />
             <div className="flex items-center gap-2 min-w-0 flex-1">
               <span className="text-xs font-medium text-gray-300 whitespace-nowrap">
-                Downloading update
+                Downloading update (Test build)
               </span>
               {/* Progress bar */}
               <div className="flex-1 h-1.5 bg-gray-700 rounded-full overflow-hidden min-w-[60px] max-w-[100px]">
@@ -162,7 +162,7 @@ const UpdateBanner: React.FC = () => {
           <div className="flex items-center gap-2">
             <Zap className="h-3.5 w-3.5 text-emerald-400" />
             <span className="text-xs font-medium text-gray-200">
-              <span className="text-emerald-300 font-semibold">v{state.version}</span> ready to install
+              <span className="text-emerald-300 font-semibold">v{state.version}</span> ready to install (Test build)
             </span>
             <button
               onClick={handleInstall}

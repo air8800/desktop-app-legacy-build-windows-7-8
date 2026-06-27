@@ -514,7 +514,7 @@ app.whenReady().then(() => {
 
     autoUpdater.autoDownload = false;       // ← we control when to download
     autoUpdater.autoInstallOnAppQuit = true;
-    autoUpdater.verifyUpdateCodeSignature = false; // ← required for unsigned apps!
+    autoUpdater.verifyUpdateCodeSignature = () => Promise.resolve(null); // ← required for unsigned apps!
 
     let updateDownloaded = false;  // guard: never re-download if already done
     let isDownloading = false;     // guard: prevent concurrent downloads

@@ -18,6 +18,7 @@ const Dashboard: React.FC = () => {
   const [downloadingFiles, setDownloadingFiles] = useState<Set<string>>(new Set());
   const [downloadedFilePaths, setDownloadedFilePaths] = useState<Map<string, string>>(new Map());
   const [queueTrigger, setQueueTrigger] = useState(0); // Trigger for sequential queue
+  const [appVersion, setAppVersion] = useState<string>('');
 
   // Refs for cleanup
   const subscriptionRef = useRef<any>(null);
@@ -34,6 +35,13 @@ const Dashboard: React.FC = () => {
 
     // Priority 1: Load jobs immediately (user sees content first)
     loadJobs();
+
+    // Fetch app version
+    if (window.electron?.getAppVersion) {
+      window.electron.getAppVersion().then((res: any) => {
+        if (res?.version) setAppVersion(res.version);
+      }).catch(() => {});
+    }
 
     // Priority 2: Notification permission (non-blocking)
     requestNotificationPermission();
@@ -837,6 +845,11 @@ const Dashboard: React.FC = () => {
             <div>
               <h1 className="text-2xl font-bold text-gradient-primary flex items-center gap-2">
                 Dashboard
+                {appVersion && (
+                  <span className="text-xs font-normal px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-full">
+                    v{appVersion}
+                  </span>
+                )}
               </h1>
               <div className="flex items-center gap-3">
                 <p className="text-gray-600 dark:text-gray-400">Monitor your shop's performance and activity</p>
