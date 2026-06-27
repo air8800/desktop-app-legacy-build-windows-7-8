@@ -2,13 +2,10 @@
 
 if (require('electron-squirrel-startup')) return require('electron').app.quit();
 
-const { app, BrowserWindow, ipcMain, dialog, Menu, shell, protocol, session } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, Menu, shell, protocol, session, autoUpdater } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const fetch = require('node-fetch');
-const { autoUpdater } = require('electron-updater');
-
-autoUpdater.logger = console;
 const isDev = require('electron-is-dev');
 const {
   APP_NAME,
@@ -514,77 +511,48 @@ app.whenReady().then(() => {
       }
     };
 
-    autoUpdater.autoDownload = false;       // ← we control when to download
-    autoUpdater.autoInstallOnAppQuit = true;
-    
-    // Explicitly configure GitHub feed so Squirrel doesn't look for app-update.yml
-    autoUpdater.setFeedURL({
-      provider: 'github',
-      owner: 'air8800',
-      repo: 'desktop-app-legacy-build-windows-7-8',
-      releaseType: 'release'
-    });
+    // Use the free update.electronjs.org service for Squirrel.Windows GitHub releases
+    const feed = `https://update.electronjs.org/air8800/desktop-app-legacy-build-windows-7-8/${process.platform}-${process.arch}/${app.getVersion()}`;
+    autoUpdater.setFeedURL({ url: feed });
 
     let updateDownloaded = false;  // guard: never re-download if already done
-    let isDownloading = false;     // guard: prevent concurrent downloads
 
     autoUpdater.on('checking-for-update', () => {
       console.log('🔍 Checking for updates...');
       sendUpdateEvent('checking', {});
     });
 
-    autoUpdater.on('update-available', (info) => {
-      console.log('🆕 Update available:', info.version);
-      sendUpdateEvent('available', { version: info.version, releaseNotes: info.releaseNotes });
-      // Only start the download if we haven't already downloaded it and aren't currently downloading
-      if (!updateDownloaded && !isDownloading) {
-        isDownloading = true;
-        autoUpdater.downloadUpdate().catch(err => {
-          isDownloading = false;
-          console.error('Failed to start download:', err);
-        });
-      }
+    autoUpdater.on('update-available', () => {
+      console.log('🆕 Update available, downloading...');
+      // Native autoUpdater doesn't pass version info in update-available event
+      sendUpdateEvent('available', { version: 'latest', releaseNotes: '' });
     });
 
-    autoUpdater.on('update-not-available', (info) => {
-      console.log('✅ App is up to date:', info.version);
-      sendUpdateEvent('not-available', { version: info.version });
+    autoUpdater.on('update-not-available', () => {
+      console.log('✅ App is up to date.');
+      sendUpdateEvent('not-available', { version: app.getVersion() });
     });
 
-    autoUpdater.on('download-progress', (progress) => {
-      console.log(`⬇️ Downloading update: ${Math.round(progress.percent)}%`);
-      sendUpdateEvent('progress', {
-        percent: Math.round(progress.percent),
-        transferred: progress.transferred,
-        total: progress.total,
-        bytesPerSecond: progress.bytesPerSecond
-      });
-    });
-
-    autoUpdater.on('update-downloaded', (info) => {
-      console.log('✅ Update downloaded, ready to install:', info.version);
-      updateDownloaded = true;   // ← stop any further re-downloads
-      isDownloading = false;
-      sendUpdateEvent('downloaded', { version: info.version });
+    autoUpdater.on('update-downloaded', (event, releaseNotes, releaseName) => {
+      console.log('✅ Update downloaded, ready to install:', releaseName);
+      updateDownloaded = true;
+      sendUpdateEvent('downloaded', { version: releaseName });
     });
 
     autoUpdater.on('error', (err) => {
-      isDownloading = false;
       console.error('❌ Auto-updater error:', err.message);
       sendUpdateEvent('error', { message: err.message });
     });
 
     // Delay first check by 3 seconds so the UI has time to load
     setTimeout(() => {
-      autoUpdater.checkForUpdates().catch(err => {
-        console.error('Failed to check for updates:', err);
-      });
+      autoUpdater.checkForUpdates();
     }, 3000);
 
     // Re-check every 2 hours — but skip if already downloaded
     setInterval(() => {
       if (!updateDownloaded) {
-        autoUpdater.checkForUpdates().catch(console.error);
+        autoUpdater.checkForUpdates();
       }
     }, 2 * 60 * 60 * 1000);
   }
@@ -613,7 +581,7 @@ ipcMain.handle('updater-install-now', async () => {
     allowQuit = true;
     const store = new Store();
     store.set('updateCompleted', true); // flag for next boot
-    autoUpdater.quitAndInstall(true, true);
+    autoUpdater.quitAndInstall();
     return { success: true };
   } catch (err) {
     return { success: false, error: err.message };
@@ -634,7 +602,7 @@ ipcMain.handle('clear-update-completed-status', () => {
 ipcMain.handle('updater-check-now', async () => {
   try {
     if (!isDev) {
-      await autoUpdater.checkForUpdates();
+      autoUpdater.checkForUpdates();
     }
     return { success: true };
   } catch (err) {
