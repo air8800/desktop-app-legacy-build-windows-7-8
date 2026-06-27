@@ -1,7 +1,7 @@
 {
   "name": "printget-shop-manager",
   "private": true,
-  "version": "1.1.16",
+  "version": "1.1.17",
   "description": "PrintGet Shop Manager — desktop app for print shop partners",
   "author": "PrintGet",
   "repository": "https://github.com/air8800/desktop-app-legacy-build-windows-7-8",
@@ -118,7 +118,7 @@
     "win": {
       "target": [
         {
-          "target": "nsis-web",
+          "target": "nsis",
           "arch": [
             "x64",
             "ia32"
@@ -130,7 +130,7 @@
       "legalTrademarks": "PrintGet Shop Manager",
       "requestedExecutionLevel": "asInvoker"
     },
-    "nsisWeb": {
+    "nsis": {
       "oneClick": false,
       "perMachine": false,
       "allowToChangeInstallationDirectory": true,
