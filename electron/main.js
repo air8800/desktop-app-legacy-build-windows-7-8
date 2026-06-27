@@ -604,7 +604,7 @@ ipcMain.handle('updater-install-now', async () => {
     allowQuit = true;
     const store = new Store();
     store.set('updateCompleted', true); // flag for next boot
-    autoUpdater.quitAndInstall(false, true);
+    autoUpdater.quitAndInstall(true, true);
     return { success: true };
   } catch (err) {
     return { success: false, error: err.message };
