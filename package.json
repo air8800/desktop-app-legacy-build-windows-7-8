@@ -132,20 +132,6 @@
       "requestedExecutionLevel": "asInvoker"
     },
     "squirrelWindows": {
-      "oneClick": false,
-      "perMachine": false,
-      "allowToChangeInstallationDirectory": true,
-      "allowElevation": true,
-      "installerIcon": "build/icons/icon.ico",
-      "uninstallerIcon": "build/icons/icon.ico",
-      "installerHeader": "build/installerHeader.bmp",
-      "installerSidebar": "build/installerSidebar.bmp",
-      "installerHeaderIcon": "build/icons/icon.ico",
-      "createDesktopShortcut": true,
-      "createStartMenuShortcut": true,
-      "shortcutName": "PrintGet Shop Manager",
-      "deleteAppDataOnUninstall": false,
-      "runAfterFinish": true
     },
     "mac": {
       "category": "public.app-category.business",
