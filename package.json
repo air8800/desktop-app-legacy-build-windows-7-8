@@ -1,7 +1,7 @@
 {
   "name": "printget-shop-manager",
   "private": true,
-  "version": "1.1.17",
+  "version": "1.1.18",
   "description": "PrintGet Shop Manager — desktop app for print shop partners",
   "author": "PrintGet",
   "repository": "https://github.com/air8800/desktop-app-legacy-build-windows-7-8",
@@ -26,16 +26,17 @@
     "@hello-pangea/dnd": "^16.5.0",
     "@supabase/supabase-js": "^2.39.0",
     "electron-is-dev": "^2.0.0",
+    "electron-squirrel-startup": "^1.0.1",
     "electron-store": "^8.1.0",
     "electron-updater": "^6.8.9",
     "lucide-react": "^0.344.0",
+    "node-fetch": "^2.7.0",
     "pdf-lib": "^1.17.1",
     "pdfjs-dist": "^3.11.174",
     "qrcode": "^1.5.3",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "react-router-dom": "^6.21.1",
-    "node-fetch": "^2.7.0"
+    "react-router-dom": "^6.21.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.9.1",
@@ -118,7 +119,7 @@
     "win": {
       "target": [
         {
-          "target": "nsis",
+          "target": "squirrel",
           "arch": [
             "x64",
             "ia32"
@@ -130,7 +131,7 @@
       "legalTrademarks": "PrintGet Shop Manager",
       "requestedExecutionLevel": "asInvoker"
     },
-    "nsis": {
+    "squirrelWindows": {
       "oneClick": false,
       "perMachine": false,
       "allowToChangeInstallationDirectory": true,

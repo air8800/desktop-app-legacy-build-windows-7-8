@@ -1,5 +1,7 @@
 "use strict";
 
+if (require('electron-squirrel-startup')) return require('electron').app.quit();
+
 const { app, BrowserWindow, ipcMain, dialog, Menu, shell, protocol, session } = require('electron');
 const path = require('path');
 const fs = require('fs');
