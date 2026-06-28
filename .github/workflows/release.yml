@@ -26,14 +26,9 @@ jobs:
       - name: Install Dependencies
         run: npm ci
 
-      - name: Set SOURCE_DATE_EPOCH for reproducible builds (Fixes 550MB update fallback)
-        run: |
-          $CommitTime = git log -1 --format=%ct
-          echo "SOURCE_DATE_EPOCH=$CommitTime" >> $env:GITHUB_ENV
-
-      - name: Build and Publish
+      - name: Build and Publish (x64 only)
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # Skip native module rebuild (no native Electron modules in this app)
           ELECTRON_BUILDER_SKIP_REBUILD: 'true'
-        run: npm run dist -- --publish always
+        run: npm run build && electron-builder --win --x64 --publish always

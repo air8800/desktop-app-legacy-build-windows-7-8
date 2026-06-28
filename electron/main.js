@@ -540,8 +540,8 @@ app.whenReady().then(() => {
     });
 
     autoUpdater.on('error', (err) => {
-      console.error('❌ Auto-updater error:', err.message);
-      sendUpdateEvent('error', { message: err.message });
+      console.error('❌ Auto-updater error:', err.message, err.stack || '');
+      sendUpdateEvent('error', { message: err.message || 'Unknown update error' });
     });
 
     // Delay first check by 3 seconds so the UI has time to load
