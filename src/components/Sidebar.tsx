@@ -3,6 +3,7 @@ import { NavLink } from 'react-router-dom';
 import { Printer, Home, Settings as SettingsIcon, ChevronLeft, ChevronRight, LogOut, User, Shield } from 'lucide-react';
 import PrintGetLogo from './PrintGetLogo';
 import SidebarStats from './SidebarStats';
+import UpdateBanner from './UpdateBanner';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -183,9 +184,13 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar, currentUser, o
             </button>
           </div>
         )}
-
         {/* Average Print Time Stats - Replaces "Quick Stats" */}
         <SidebarStats jobs={jobs} isOpen={isOpen} />
+
+        {/* Update Banner */}
+        <div className={`mt-4 ${isOpen ? 'px-3' : 'px-2'}`}>
+          <UpdateBanner isOpen={isOpen} />
+        </div>
       </div>
     </div>
   );

@@ -11,7 +11,11 @@ type UpdateState =
   | { status: 'up-to-date'; version: string }
   | { status: 'completed' };
 
-const UpdateBanner: React.FC = () => {
+interface UpdateBannerProps {
+  isOpen?: boolean;
+}
+
+const UpdateBanner: React.FC<UpdateBannerProps> = ({ isOpen = true }) => {
   const [state, setState] = useState<UpdateState>({ status: 'idle' });
   const [dismissed, setDismissed] = useState(false);
   const [installing, setInstalling] = useState(false);
@@ -117,11 +121,21 @@ const UpdateBanner: React.FC = () => {
     window.electron.checkForUpdates().catch(() => {});
   };
 
-  // Nothing to show
-  if (dismissed || state.status === 'idle') return null;
+  // Remove early return to show the permanent check button
 
   const renderContent = () => {
     switch (state.status) {
+      case 'idle':
+        return (
+          <button 
+            onClick={handleManualCheck}
+            className={`flex items-center gap-2 w-full text-left group ${!isOpen && 'justify-center'}`}
+            title="Check for updates"
+          >
+            <RefreshCw className="h-4 w-4 text-gray-500 group-hover:text-gray-300 transition-colors" />
+            {isOpen && <span className="text-xs font-medium text-gray-500 group-hover:text-gray-300 transition-colors">Check for updates</span>}
+          </button>
+        );
       case 'checking':
         return (
           <div className="flex items-center gap-2">
@@ -248,8 +262,10 @@ const UpdateBanner: React.FC = () => {
         ${isImportant && !shrinkReadyState
           ? 'bg-emerald-950/80 border-emerald-700/60 shadow-[0_0_12px_rgba(16,185,129,0.15)] px-3 py-1.5 rounded-lg'
           : isShrunk
-          ? 'bg-gray-900/80 border-gray-700/50 p-1.5 rounded-full aspect-square justify-center'
-          : 'bg-gray-900/80 border-gray-700/50 px-3 py-1.5 rounded-lg'
+          ? 'bg-gray-900/80 border-gray-700/50 p-1.5 rounded-full aspect-square justify-center mx-auto'
+          : state.status === 'idle'
+          ? 'bg-transparent border-transparent px-2 py-1.5 hover:bg-gray-800/50 rounded-lg w-full'
+          : 'bg-gray-900/80 border-gray-700/50 px-3 py-1.5 rounded-lg w-full'
         }
         backdrop-blur-sm
       `}
@@ -257,10 +273,13 @@ const UpdateBanner: React.FC = () => {
       {renderContent()}
 
       {/* Dismiss button */}
-      {isDismissable && state.status !== 'up-to-date' && (
+      {isDismissable && state.status !== 'up-to-date' && state.status !== 'idle' && (
         <button
-          onClick={() => setDismissed(true)}
-          className="ml-1 p-0.5 rounded text-gray-500 hover:text-gray-300 transition-colors"
+          onClick={() => {
+            setDismissed(true);
+            setState({ status: 'idle' });
+          }}
+          className="ml-auto p-0.5 rounded text-gray-500 hover:text-gray-300 transition-colors"
           title="Dismiss"
         >
           <X className="h-3 w-3" />
