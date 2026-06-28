@@ -206,20 +206,22 @@ const UpdateBanner: React.FC = () => {
 
       case 'error':
         return (
-          <div className="flex items-center gap-2">
-            <AlertCircle className="h-3.5 w-3.5 text-red-400 shrink-0" />
-            <div className="flex flex-col">
-              <span className="text-xs font-bold text-red-300">Update failed</span>
-              <span className="text-[10px] text-gray-300 max-w-[250px] truncate" title={state.message}>
-                {state.message || "Unknown error"}
-              </span>
+          <div className="flex flex-col gap-2 p-2 w-full max-w-2xl">
+            <div className="flex items-center gap-2">
+              <AlertCircle className="h-4 w-4 text-red-400 shrink-0" />
+              <span className="text-sm font-bold text-red-300">Update failed (Debug UI)</span>
+              <button
+                onClick={handleManualCheck}
+                className="ml-auto px-3 py-1 text-xs font-semibold bg-gray-800 hover:bg-gray-700 text-white rounded transition-colors"
+              >
+                Retry Update
+              </button>
             </div>
-            <button
-              onClick={handleManualCheck}
-              className="ml-2 px-2 py-1 text-xs bg-gray-800 hover:bg-gray-700 text-white rounded transition-colors"
-            >
-              Retry
-            </button>
+            <div className="bg-black/60 p-3 rounded overflow-y-auto max-h-[200px] border border-red-900/50">
+              <pre className="text-[11px] text-gray-300 whitespace-pre-wrap break-words font-mono">
+                {state.message || "Unknown error"}
+              </pre>
+            </div>
           </div>
         );
 

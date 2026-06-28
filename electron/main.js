@@ -541,7 +541,8 @@ app.whenReady().then(() => {
 
     autoUpdater.on('error', (err) => {
       console.error('❌ Auto-updater error:', err.message, err.stack || '');
-      sendUpdateEvent('error', { message: err.message || 'Unknown update error' });
+      const fullError = `${err.message || 'Unknown error'}\n\nStack:\n${err.stack || 'No stack trace available'}`;
+      sendUpdateEvent('error', { message: fullError });
     });
 
     // Delay first check by 3 seconds so the UI has time to load
