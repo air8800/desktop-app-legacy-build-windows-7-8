@@ -512,7 +512,14 @@ app.whenReady().then(() => {
       }
     };
 
-    // Use electron-updater which reads app-update.yml directly (no buggy proxies)
+    // Use electron-updater directly with GitHub (bypasses update.electronjs.org bugs)
+    // Manually set feed URL since Squirrel.Windows target skips generating app-update.yml
+    autoUpdater.setFeedURL({
+      provider: 'github',
+      owner: 'air8800',
+      repo: 'desktop-app-legacy-build-windows-7-8',
+      releaseType: 'release'
+    });
 
     let updateDownloaded = false;  // guard: never re-download if already done
 
