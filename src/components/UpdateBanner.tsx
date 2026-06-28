@@ -16,6 +16,7 @@ const UpdateBanner: React.FC = () => {
   const [dismissed, setDismissed] = useState(false);
   const [installing, setInstalling] = useState(false);
   const [appVersion, setAppVersion] = useState<string>('');
+  const [shrinkReadyState, setShrinkReadyState] = useState(false);
 
   // Fetch current app version on mount and check if we just updated
   useEffect(() => {
@@ -77,7 +78,9 @@ const UpdateBanner: React.FC = () => {
         break;
       case 'downloaded':
         setState({ status: 'downloaded', version: data.version });
+        setShrinkReadyState(false);
         setDismissed(false);
+        setTimeout(() => setShrinkReadyState(true), 8000);
         break;
       case 'error':
         // Don't show trivial network errors — only show if meaningful
@@ -129,11 +132,8 @@ const UpdateBanner: React.FC = () => {
 
       case 'available':
         return (
-          <div className="flex items-center gap-2">
-            <Download className="h-3.5 w-3.5 text-blue-400 animate-pulse" />
-            <span className="text-xs font-medium text-gray-200">
-              Update <span className="text-blue-300 font-semibold">v{state.version}</span> downloading...
-            </span>
+          <div className="flex items-center justify-center w-5 h-5" title="Downloading update...">
+            <Download className="h-4 w-4 text-blue-400 animate-bounce" />
           </div>
         );
 
@@ -162,6 +162,17 @@ const UpdateBanner: React.FC = () => {
         );
 
       case 'downloaded':
+        if (shrinkReadyState) {
+          return (
+            <div 
+              className="flex items-center justify-center w-5 h-5 cursor-pointer" 
+              title="Update ready to install. Click to expand."
+              onClick={() => setShrinkReadyState(false)}
+            >
+              <Zap className="h-4 w-4 text-emerald-400 animate-pulse" />
+            </div>
+          );
+        }
         return (
           <div className="flex items-center gap-2">
             <Zap className="h-3.5 w-3.5 text-emerald-400" />
@@ -226,16 +237,17 @@ const UpdateBanner: React.FC = () => {
   const isDismissable = state.status !== 'downloading' && state.status !== 'checking';
   const isImportant = state.status === 'downloaded';
 
-  const isDownloading = state.status === 'downloading';
+  const isDownloading = state.status === 'available' || state.status === 'downloading';
+  const isShrunk = isDownloading || (state.status === 'downloaded' && shrinkReadyState);
 
   return (
     <div
       className={`
         flex items-center gap-2 text-sm
         border transition-all duration-300 select-none
-        ${isImportant
+        ${isImportant && !shrinkReadyState
           ? 'bg-emerald-950/80 border-emerald-700/60 shadow-[0_0_12px_rgba(16,185,129,0.15)] px-3 py-1.5 rounded-lg'
-          : isDownloading
+          : isShrunk
           ? 'bg-gray-900/80 border-gray-700/50 p-1.5 rounded-full aspect-square justify-center'
           : 'bg-gray-900/80 border-gray-700/50 px-3 py-1.5 rounded-lg'
         }
