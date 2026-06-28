@@ -32,8 +32,8 @@ const AppShell: React.FC<AppShellProps> = ({
       printers={printers}
     />
     <div className="flex-1 flex flex-col overflow-hidden min-w-0 relative">
-      {/* Update banner — floats in the top-right corner of main content */}
-      <div className="absolute top-3 right-4 z-50 pointer-events-auto">
+      {/* Update banner — floats in the bottom-right corner of main content */}
+      <div className="absolute bottom-4 right-4 z-50 pointer-events-auto">
         <UpdateBanner />
       </div>
 

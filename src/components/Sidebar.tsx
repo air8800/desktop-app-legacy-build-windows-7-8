@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
 import { Printer, Home, Settings as SettingsIcon, ChevronLeft, ChevronRight, LogOut, User, Shield } from 'lucide-react';
 import PrintGetLogo from './PrintGetLogo';
@@ -14,6 +14,15 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar, currentUser, onLogout, jobs = [] }) => {
+  const [appVersion, setAppVersion] = useState<string>('');
+
+  useEffect(() => {
+    if (window.electron?.getAppVersion) {
+      window.electron.getAppVersion().then((res: any) => {
+        if (res?.version) setAppVersion(res.version);
+      }).catch(() => {});
+    }
+  }, []);
   const handleNavClick = (e: React.MouseEvent) => {
     e.stopPropagation();
   };
@@ -54,7 +63,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar, currentUser, o
               <PrintGetLogo size="md" />
               <div className="flex items-center gap-2 mt-1.5 ml-0.5">
                 <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                <p className="text-xs text-gray-500 font-medium">Shop Manager</p>
+                <p className="text-xs text-gray-500 font-medium">Shop Manager {appVersion && <span className="text-gray-400 text-[10px] ml-1">v{appVersion}</span>}</p>
               </div>
             </div>
           ) : (

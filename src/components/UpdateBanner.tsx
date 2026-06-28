@@ -139,21 +139,25 @@ const UpdateBanner: React.FC = () => {
 
       case 'downloading':
         return (
-          <div className="flex items-center gap-2 min-w-0">
-            <Download className="h-3.5 w-3.5 text-blue-400 shrink-0" />
-            <div className="flex items-center gap-2 min-w-0 flex-1">
-              <span className="text-xs font-medium text-gray-300 whitespace-nowrap">
-                Downloading update...
-              </span>
-              {/* Progress bar */}
-              <div className="flex-1 h-1.5 bg-gray-700 rounded-full overflow-hidden min-w-[60px] max-w-[100px]">
-                <div
-                  className="h-full bg-gradient-to-r from-blue-500 to-indigo-400 rounded-full transition-all duration-300"
-                  style={{ width: `${state.percent}%` }}
-                />
-              </div>
-              <span className="text-xs text-blue-300 font-mono whitespace-nowrap">{state.percent}%</span>
-            </div>
+          <div className="flex items-center justify-center relative w-5 h-5" title={`Downloading update... ${state.percent}%`}>
+             <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
+               <path
+                 className="text-gray-700"
+                 stroke="currentColor"
+                 strokeWidth="3"
+                 fill="none"
+                 d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+               />
+               <path
+                 className="text-blue-500 transition-all duration-300"
+                 strokeDasharray={`${state.percent}, 100`}
+                 stroke="currentColor"
+                 strokeWidth="3"
+                 fill="none"
+                 d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+               />
+             </svg>
+             <Download className="absolute inset-0 m-auto h-2.5 w-2.5 text-blue-400" />
           </div>
         );
 
@@ -222,14 +226,18 @@ const UpdateBanner: React.FC = () => {
   const isDismissable = state.status !== 'downloading' && state.status !== 'checking';
   const isImportant = state.status === 'downloaded';
 
+  const isDownloading = state.status === 'downloading';
+
   return (
     <div
       className={`
-        flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm
+        flex items-center gap-2 text-sm
         border transition-all duration-300 select-none
         ${isImportant
-          ? 'bg-emerald-950/80 border-emerald-700/60 shadow-[0_0_12px_rgba(16,185,129,0.15)]'
-          : 'bg-gray-900/80 border-gray-700/50'
+          ? 'bg-emerald-950/80 border-emerald-700/60 shadow-[0_0_12px_rgba(16,185,129,0.15)] px-3 py-1.5 rounded-lg'
+          : isDownloading
+          ? 'bg-gray-900/80 border-gray-700/50 p-1.5 rounded-full aspect-square justify-center'
+          : 'bg-gray-900/80 border-gray-700/50 px-3 py-1.5 rounded-lg'
         }
         backdrop-blur-sm
       `}
