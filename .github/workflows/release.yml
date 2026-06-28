@@ -31,4 +31,4 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # Skip native module rebuild (no native Electron modules in this app)
           ELECTRON_BUILDER_SKIP_REBUILD: 'true'
-        run: npm run build && electron-builder --win --x64 --publish always
+        run: npm run build && npx electron-builder --win --x64 --publish always
