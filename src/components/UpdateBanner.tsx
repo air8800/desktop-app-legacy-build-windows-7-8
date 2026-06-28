@@ -162,7 +162,7 @@ const UpdateBanner: React.FC = () => {
           <div className="flex items-center gap-2">
             <Zap className="h-3.5 w-3.5 text-emerald-400" />
             <span className="text-xs font-medium text-gray-200">
-              <span className="text-emerald-300 font-semibold">v{state.version}</span> ready to install (Test build)
+              <span className="text-emerald-300 font-semibold">v{state.version}</span> ready to install
             </span>
             <button
               onClick={handleInstall}
@@ -206,22 +206,11 @@ const UpdateBanner: React.FC = () => {
 
       case 'error':
         return (
-          <div className="flex flex-col gap-2 p-2 w-full max-w-2xl">
-            <div className="flex items-center gap-2">
-              <AlertCircle className="h-4 w-4 text-red-400 shrink-0" />
-              <span className="text-sm font-bold text-red-300">Update failed (Debug UI)</span>
-              <button
-                onClick={handleManualCheck}
-                className="ml-auto px-3 py-1 text-xs font-semibold bg-gray-800 hover:bg-gray-700 text-white rounded transition-colors"
-              >
-                Retry Update
-              </button>
-            </div>
-            <div className="bg-black/60 p-3 rounded overflow-y-auto max-h-[200px] border border-red-900/50">
-              <pre className="text-[11px] text-gray-300 whitespace-pre-wrap break-words font-mono">
-                {state.message || "Unknown error"}
-              </pre>
-            </div>
+          <div className="flex items-center gap-2">
+            <AlertCircle className="h-3.5 w-3.5 text-red-400" />
+            <span className="text-xs font-medium text-red-200">
+              Update failed. <button onClick={handleManualCheck} className="underline text-red-300 hover:text-red-200">Retry</button>
+            </span>
           </div>
         );
 
