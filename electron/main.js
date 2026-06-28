@@ -2,8 +2,7 @@
 
 if (require('electron-squirrel-startup')) return require('electron').app.quit();
 
-const { app, BrowserWindow, ipcMain, dialog, Menu, shell, protocol, session } = require('electron');
-const { autoUpdater } = require('electron-updater');
+const { app, BrowserWindow, ipcMain, dialog, Menu, shell, protocol, session, autoUpdater } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const fetch = require('node-fetch');
@@ -512,14 +511,9 @@ app.whenReady().then(() => {
       }
     };
 
-    // Use electron-updater directly with GitHub (bypasses update.electronjs.org bugs)
-    // Manually set feed URL since Squirrel.Windows target skips generating app-update.yml
-    autoUpdater.setFeedURL({
-      provider: 'github',
-      owner: 'air8800',
-      repo: 'desktop-app-legacy-build-windows-7-8',
-      releaseType: 'release'
-    });
+    // Use native autoUpdater pointed DIRECTLY to GitHub releases (bypasses broken proxies)
+    const feed = 'https://github.com/air8800/desktop-app-legacy-build-windows-7-8/releases/latest/download';
+    autoUpdater.setFeedURL({ url: feed });
 
     let updateDownloaded = false;  // guard: never re-download if already done
 
@@ -528,21 +522,20 @@ app.whenReady().then(() => {
       sendUpdateEvent('checking', {});
     });
 
-    autoUpdater.on('update-available', (info) => {
+    autoUpdater.on('update-available', () => {
       console.log('🆕 Update available, downloading...');
-      sendUpdateEvent('available', { version: info?.version || 'latest', releaseNotes: '' });
+      sendUpdateEvent('available', { version: 'latest', releaseNotes: '' });
     });
 
-    autoUpdater.on('update-not-available', (info) => {
+    autoUpdater.on('update-not-available', () => {
       console.log('✅ App is up to date.');
       sendUpdateEvent('not-available', { version: app.getVersion() });
     });
 
-    autoUpdater.on('update-downloaded', (info) => {
-      const v = info?.version || 'latest';
-      console.log('✅ Update downloaded, ready to install:', v);
+    autoUpdater.on('update-downloaded', (event, releaseNotes, releaseName) => {
+      console.log('✅ Update downloaded, ready to install:', releaseName);
       updateDownloaded = true;
-      sendUpdateEvent('downloaded', { version: v });
+      sendUpdateEvent('downloaded', { version: releaseName });
     });
 
     autoUpdater.on('error', (err) => {
