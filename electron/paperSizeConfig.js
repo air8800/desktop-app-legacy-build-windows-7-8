@@ -168,11 +168,26 @@ const formatPaperSizeForPrinter = (paperSize, printerName, platform = process.pl
   return config;
 };
 
+// Add a custom paper size dynamically
+const addCustomPaperSize = (customSize) => {
+  if (customSize && customSize.key) {
+    PAPER_SIZES[customSize.key] = {
+      ...customSize,
+      windowsName: customSize.windowsName || customSize.name,
+      macosName: customSize.macosName || \`custom-\${customSize.key}\`,
+      linuxName: customSize.linuxName || customSize.name,
+      printerCode: customSize.printerCode || '',
+      isCustom: true
+    };
+  }
+};
+
 module.exports = {
   PAPER_SIZES,
   getPaperSizeForPlatform,
   getPaperSizeArgs,
   isSupportedPaperSize,
   getAvailablePaperSizes,
-  formatPaperSizeForPrinter
+  formatPaperSizeForPrinter,
+  addCustomPaperSize
 };

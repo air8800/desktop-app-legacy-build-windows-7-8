@@ -29,6 +29,7 @@ contextBridge.exposeInMainWorld(
 
     // Paper size functions
     getAvailablePaperSizes: () => ipcRenderer.invoke("get-available-paper-sizes"),
+    registerCustomPaperSizes: (sizes) => ipcRenderer.invoke("register-custom-paper-sizes", sizes),
 
     // Direct Windows printing function
     directPrintWindows: (filePath, printerName, paperSize, copies, colorMode, printType, nupPages, nupOrientation) =>

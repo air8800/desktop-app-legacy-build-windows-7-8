@@ -14,7 +14,7 @@ const Printers: React.FC = () => {
   const [printers, setPrinters] = useState<Printer[]>([]);
   const [printerConfigs, setPrinterConfigs] = useState<PrinterConfigItem[]>([]);
   const [costConfigs, setCostConfigs] = useState<CostConfigItem[]>([]);
-  const [customSizes, setCustomSizes] = useState<PaperSize[]>([]);
+  const [customSizes, setCustomSizes] = useState<any[]>([]); // Array of CustomPaperSize
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'list' | 'config' | 'cost'>('list');
   const [syncStatus, setSyncStatus] = useState<{
@@ -56,7 +56,12 @@ const Printers: React.FC = () => {
     // Load custom sizes
     const savedSizes = localStorage.getItem(CUSTOM_SIZES_KEY);
     if (savedSizes) {
-      setCustomSizes(JSON.parse(savedSizes));
+      const parsedSizes = JSON.parse(savedSizes);
+      setCustomSizes(parsedSizes);
+      // Register with backend immediately
+      if (window.electron && window.electron.registerCustomPaperSizes) {
+        window.electron.registerCustomPaperSizes(parsedSizes).catch(console.error);
+      }
     }
     
     // Load cost configurations
@@ -153,9 +158,12 @@ const Printers: React.FC = () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(newConfigs));
   };
 
-  const handleCustomSizesUpdate = (newSizes: PaperSize[]) => {
+  const handleCustomSizesUpdate = (newSizes: any[]) => {
     setCustomSizes(newSizes);
     localStorage.setItem(CUSTOM_SIZES_KEY, JSON.stringify(newSizes));
+    if (window.electron && window.electron.registerCustomPaperSizes) {
+      window.electron.registerCustomPaperSizes(newSizes).catch(console.error);
+    }
   };
 
   const handleCostConfigUpdate = (newCostConfigs: CostConfigItem[]) => {

@@ -851,10 +851,36 @@ ipcMain.handle('get-printers', async () => {
           return VIRTUAL_NAME_KEYWORDS.some(kw => lower.includes(kw));
         };
 
-        // Fetch Name, PrinterStatus, IsDefault AND PortName
-        const { stdout } = await execPromise(
-          'powershell.exe -Command "Get-Printer | Select-Object Name,PrinterStatus,IsDefault,PortName | ConvertTo-Json"'
-        );
+        // Fetch Name, PrinterStatus, IsDefault, PortName AND SupportedSizes using PrintCapabilitiesXML
+        const psScript = `
+$printers = Get-Printer
+$results = @()
+foreach ($p in $printers) {
+    $sizes = @()
+    try {
+        $config = Get-PrintConfiguration -PrinterName $p.Name -ErrorAction SilentlyContinue
+        if ($config.PrintCapabilitiesXML) {
+            [xml]$xml = $config.PrintCapabilitiesXML
+            $ns = new-object Xml.XmlNamespaceManager $xml.NameTable
+            $ns.AddNamespace('psf', 'http://schemas.microsoft.com/windows/2003/08/printing/printschemaframework')
+            $nodes = $xml.SelectNodes('//psf:Feature[@name=''psk:PageMediaSize'']/psf:Option', $ns)
+            foreach ($node in $nodes) {
+                $sizes += $node.name.Replace('psk:', '').Replace('ns0001:', '')
+            }
+        }
+    } catch {}
+    $results += @{
+        Name = $p.Name
+        PrinterStatus = $p.PrinterStatus
+        IsDefault = $p.IsDefault
+        PortName = $p.PortName
+        SupportedSizes = $sizes
+    }
+}
+$results | ConvertTo-Json -Depth 3
+`;
+        const encodedCommand = Buffer.from(psScript, 'utf16le').toString('base64');
+        const { stdout } = await execPromise(`powershell.exe -EncodedCommand ${encodedCommand}`);
         if (stdout) {
           const systemPrinters = JSON.parse(stdout);
           const printersArray = Array.isArray(systemPrinters) ? systemPrinters : [systemPrinters];
@@ -862,7 +888,8 @@ ipcMain.handle('get-printers', async () => {
             name: printer.Name,
             status: printer.PrinterStatus === 1 ? 'Ready' : 'Not Ready',
             isVirtual: isVirtualByPort(printer.PortName) || isVirtualByName(printer.Name),
-            default: printer.IsDefault || false
+            default: printer.IsDefault || false,
+            supportedPaperSizes: printer.SupportedSizes || []
           }));
         }
       } catch (error) {
@@ -911,17 +938,34 @@ ipcMain.handle('get-printers', async () => {
       });
     }
 
-    // Add paper size support information
+    // For non-Windows platforms or fallback, assign all sizes if missing
     const printersWithPaperSizes = printers.map(printer => {
       return {
         ...printer,
-        supportedPaperSizes: getAvailablePaperSizes().map(size => size.key)
+        supportedPaperSizes: (printer.supportedPaperSizes && printer.supportedPaperSizes.length > 0) 
+          ? printer.supportedPaperSizes 
+          : getAvailablePaperSizes().map(size => size.key)
       };
     });
 
     return { success: true, printers: printersWithPaperSizes };
   } catch (error) {
     console.error('Error getting printers:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('register-custom-paper-sizes', async (event, sizes) => {
+  try {
+    if (psc && psc.addCustomPaperSize) {
+      sizes.forEach(size => {
+        psc.addCustomPaperSize(size);
+      });
+      return { success: true };
+    }
+    return { success: false, error: 'Custom paper size registration not supported' };
+  } catch (error) {
+    console.error('Error registering custom paper sizes:', error);
     return { success: false, error: error.message };
   }
 });

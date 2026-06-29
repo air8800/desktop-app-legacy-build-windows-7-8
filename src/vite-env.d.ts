@@ -43,6 +43,7 @@ interface Window {
 
     // 🔥 NEW: Paper size functions
     getAvailablePaperSizes: () => Promise<{ success: boolean, paperSizes?: Array<{ key: string, name: string, description: string, width: number, height: number, unit: string }>, error?: string }>;
+    registerCustomPaperSizes: (sizes: any[]) => Promise<{ success: boolean, error?: string }>;
 
     // 🔥 NEW: Direct Windows printing
     directPrintWindows: (filePath: string, printerName: string, paperSize: string, copies: number, colorMode?: string, printType?: string, nupPages?: number, nupOrientation?: string) =>

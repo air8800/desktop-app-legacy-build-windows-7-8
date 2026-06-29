@@ -88,7 +88,17 @@ export interface Printer {
 }
 
 // Paper size type
-export type PaperSize = 'A3' | 'A4' | 'A5' | 'Letter' | 'Legal' | 'Executive';
+export type PaperSize = 'A3' | 'A4' | 'A5' | 'Letter' | 'Legal' | 'Executive' | string;
+
+export interface CustomPaperSize {
+  key: string;
+  name: string;
+  width: number;
+  height: number;
+  unit: 'mm' | 'in';
+  description?: string;
+  isCustom?: boolean;
+}
 
 // Printer configuration for a paper size
 export interface PrinterConfigItem {

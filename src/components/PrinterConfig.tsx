@@ -7,9 +7,9 @@ import { syncPrinterConfigs } from '../utils/supabase';
 interface PrinterConfigProps {
   printers: Printer[];
   configs: PrinterConfigItem[];
-  customSizes: PaperSize[];
+  customSizes: any[];
   onConfigUpdate: (configs: PrinterConfigItem[]) => void;
-  onCustomSizesUpdate: (sizes: PaperSize[]) => void;
+  onCustomSizesUpdate: (sizes: any[]) => void;
 }
 
 const DEFAULT_PAPER_SIZES: PaperSize[] = ['A3', 'A4', 'A5', 'Letter', 'Legal', 'Executive'];
@@ -23,8 +23,14 @@ const PrinterConfig: React.FC<PrinterConfigProps> = ({
 }) => {
   const [selectedSize, setSelectedSize] = useState<PaperSize>('A4');
   const [selectedPrinter, setSelectedPrinter] = useState<string>('');
-  const [customSize, setCustomSize] = useState('');
+  
+  // Custom Size Form State
+  const [customSizeName, setCustomSizeName] = useState('');
+  const [customSizeWidth, setCustomSizeWidth] = useState<number | ''>('');
+  const [customSizeHeight, setCustomSizeHeight] = useState<number | ''>('');
+  const [customSizeUnit, setCustomSizeUnit] = useState<'mm' | 'in'>('mm');
   const [showCustomSizeInput, setShowCustomSizeInput] = useState(false);
+  
   const [draggedItem, setDraggedItem] = useState<string | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
   const [testingPrinter, setTestingPrinter] = useState<string | null>(null);
@@ -36,7 +42,8 @@ const PrinterConfig: React.FC<PrinterConfigProps> = ({
   const [isCreatingTestFile, setIsCreatingTestFile] = useState(false);
   const [testFilePath, setTestFilePath] = useState<string | null>(null);
 
-  const allPaperSizes = [...DEFAULT_PAPER_SIZES, ...customSizes];
+  const customSizeKeys = customSizes.map(s => s.key || s);
+  const allPaperSizes = [...DEFAULT_PAPER_SIZES, ...customSizeKeys];
 
   // 🔥 NEW: Load available paper sizes from system
   useEffect(() => {
@@ -51,11 +58,17 @@ const PrinterConfig: React.FC<PrinterConfigProps> = ({
             const systemSizes = result.paperSizes.map(size => size.key);
             const newCustomSizes = systemSizes.filter(size => 
               !DEFAULT_PAPER_SIZES.includes(size as PaperSize) && 
-              !customSizes.includes(size as PaperSize)
-            );
+              !customSizeKeys.includes(size)
+            ).map(size => ({
+              key: size,
+              name: size,
+              width: 210, // dummy defaults for auto-discovered sizes
+              height: 297,
+              unit: 'mm'
+            }));
             
             if (newCustomSizes.length > 0) {
-              onCustomSizesUpdate([...customSizes, ...newCustomSizes as PaperSize[]]);
+              onCustomSizesUpdate([...customSizes, ...newCustomSizes]);
             }
           }
         } catch (error) {
@@ -306,20 +319,36 @@ const PrinterConfig: React.FC<PrinterConfigProps> = ({
   };
 
   const handleAddCustomSize = async () => {
-    if (customSize && !allPaperSizes.includes(customSize as PaperSize)) {
-      const newSizes = [...customSizes, customSize as PaperSize];
-      onCustomSizesUpdate(newSizes);
-      setCustomSize('');
-      setShowCustomSizeInput(false);
-      
-      // 🔥 NEW: Sync to database after adding custom size
-      await syncConfigsToDatabase(configs);
+    if (customSizeName && customSizeWidth && customSizeHeight) {
+      const formattedKey = customSizeName.trim().toUpperCase().replace(/\s+/g, '_');
+      if (!allPaperSizes.includes(formattedKey)) {
+        const newSizeConfig = {
+          key: formattedKey,
+          name: customSizeName.trim(),
+          width: Number(customSizeWidth),
+          height: Number(customSizeHeight),
+          unit: customSizeUnit,
+          description: `${customSizeWidth} × ${customSizeHeight} ${customSizeUnit}`,
+          isCustom: true
+        };
+        const newSizes = [...customSizes, newSizeConfig];
+        onCustomSizesUpdate(newSizes);
+        
+        // Reset form
+        setCustomSizeName('');
+        setCustomSizeWidth('');
+        setCustomSizeHeight('');
+        setShowCustomSizeInput(false);
+        
+        // 🔥 NEW: Sync to database after adding custom size
+        await syncConfigsToDatabase(configs);
+      }
     }
   };
 
   const handleRemoveSize = async (size: PaperSize) => {
     if (!DEFAULT_PAPER_SIZES.includes(size)) {
-      onCustomSizesUpdate(customSizes.filter(s => s !== size));
+      onCustomSizesUpdate(customSizes.filter(s => (s.key || s) !== size));
       const updatedConfigs = configs.filter(c => c.paperSize !== size);
       onConfigUpdate(updatedConfigs);
       
@@ -622,26 +651,56 @@ const PrinterConfig: React.FC<PrinterConfigProps> = ({
               <X className="h-5 w-5 text-blue-600 dark:text-blue-400" />
             </button>
           </div>
-          
           <div className="space-y-4">
-            <div className="form-group">
-              <label className="form-label text-blue-800 dark:text-blue-300">Custom Paper Size Name</label>
-              <input
-                type="text"
-                value={customSize}
-                onChange={(e) => setCustomSize(e.target.value.toUpperCase())}
-                placeholder="Enter custom size (e.g., B4, A6, CUSTOM)"
-                className="input cursor-visible border-blue-300 dark:border-blue-600 focus:ring-blue-500"
-                autoComplete="off"
-                spellCheck="false"
-              />
-              <p className="form-help text-blue-600 dark:text-blue-400">Enter a unique name for your custom paper size</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="form-group md:col-span-2">
+                <label className="form-label text-blue-800 dark:text-blue-300">Custom Paper Size Name</label>
+                <input
+                  type="text"
+                  value={customSizeName}
+                  onChange={(e) => setCustomSizeName(e.target.value)}
+                  placeholder="e.g., Envelope C5, Custom Card"
+                  className="input cursor-text border-blue-300 dark:border-blue-600 focus:ring-blue-500"
+                  autoComplete="off"
+                  spellCheck="false"
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label text-blue-800 dark:text-blue-300">Width</label>
+                <input
+                  type="number"
+                  value={customSizeWidth}
+                  onChange={(e) => setCustomSizeWidth(Number(e.target.value))}
+                  placeholder="e.g., 162"
+                  className="input cursor-text border-blue-300 dark:border-blue-600 focus:ring-blue-500"
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label text-blue-800 dark:text-blue-300">Height</label>
+                <div className="flex gap-2">
+                  <input
+                    type="number"
+                    value={customSizeHeight}
+                    onChange={(e) => setCustomSizeHeight(Number(e.target.value))}
+                    placeholder="e.g., 229"
+                    className="input cursor-text flex-1 border-blue-300 dark:border-blue-600 focus:ring-blue-500"
+                  />
+                  <select
+                    value={customSizeUnit}
+                    onChange={(e) => setCustomSizeUnit(e.target.value as 'mm' | 'in')}
+                    className="input w-24 border-blue-300 dark:border-blue-600 focus:ring-blue-500 cursor-pointer"
+                  >
+                    <option value="mm">mm</option>
+                    <option value="in">inches</option>
+                  </select>
+                </div>
+              </div>
             </div>
             
             <div className="flex gap-3">
               <button
                 onClick={handleAddCustomSize}
-                disabled={!customSize.trim() || isSyncing}
+                disabled={!customSizeName.trim() || !customSizeWidth || !customSizeHeight || isSyncing}
                 className="btn-primary flex-1 shadow-large hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <CheckCircle className="h-4 w-4 mr-2" />
