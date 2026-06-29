@@ -42,8 +42,17 @@ const PrinterConfig: React.FC<PrinterConfigProps> = ({
   const [isCreatingTestFile, setIsCreatingTestFile] = useState(false);
   const [testFilePath, setTestFilePath] = useState<string | null>(null);
 
+  // Smart Popup State
+  const [showSmartPopup, setShowSmartPopup] = useState(false);
+  const [configuringPrinter, setConfiguringPrinter] = useState<Printer | null>(null);
+  const [smartPopupSelectedSizes, setSmartPopupSelectedSizes] = useState<Set<string>>(new Set());
+
   const customSizeKeys = customSizes.map(s => s.key || s);
   const allPaperSizes = [...DEFAULT_PAPER_SIZES, ...customSizeKeys];
+  
+  // For the Drag & Drop view, only show default sizes and sizes that actually have printers assigned
+  const sizesWithPrinters = configs.filter(c => c.printers.length > 0).map(c => c.paperSize);
+  const displayPaperSizes = Array.from(new Set([...DEFAULT_PAPER_SIZES, ...sizesWithPrinters])).sort();
 
   // 🔥 NEW: Load available paper sizes from system
   useEffect(() => {
@@ -358,26 +367,50 @@ const PrinterConfig: React.FC<PrinterConfigProps> = ({
   };
 
   const handleAddPrinter = async () => {
-    if (!selectedPrinter) return;
+    if (!configuringPrinter) return;
 
-    const newConfigs = [...configs];
-    const configIndex = newConfigs.findIndex(c => c.paperSize === selectedSize);
+    let newConfigs = [...configs];
 
-    if (configIndex >= 0) {
-      if (!newConfigs[configIndex].printers.includes(selectedPrinter)) {
-        newConfigs[configIndex].printers.push(selectedPrinter);
+    // For all allPaperSizes (or specifically the sizes in smartPopupSelectedSizes and previously configured ones)
+    // Actually, we iterate through smartPopupSelectedSizes and add/remove as needed.
+    
+    // First, remove the printer from sizes that were UNCHECKED in the popup
+    newConfigs = newConfigs.map(c => {
+      if (!smartPopupSelectedSizes.has(c.paperSize)) {
+        return {
+          ...c,
+          printers: c.printers.filter(p => p !== configuringPrinter.name)
+        };
       }
-    } else {
-      newConfigs.push({
-        paperSize: selectedSize,
-        printers: [selectedPrinter]
-      });
-    }
+      return c;
+    });
+
+    // Then, add the printer to sizes that are CHECKED
+    smartPopupSelectedSizes.forEach(size => {
+      const configIndex = newConfigs.findIndex(c => c.paperSize === size);
+      if (configIndex >= 0) {
+        if (!newConfigs[configIndex].printers.includes(configuringPrinter.name)) {
+          newConfigs[configIndex] = {
+            ...newConfigs[configIndex],
+            printers: [...newConfigs[configIndex].printers, configuringPrinter.name]
+          };
+        }
+      } else {
+        newConfigs.push({
+          paperSize: size,
+          printers: [configuringPrinter.name]
+        });
+      }
+    });
+
+    // Clean up configs with 0 printers if they are not DEFAULT_PAPER_SIZES
+    newConfigs = newConfigs.filter(c => c.printers.length > 0 || DEFAULT_PAPER_SIZES.includes(c.paperSize));
 
     onConfigUpdate(newConfigs);
-    setSelectedPrinter('');
+    setShowSmartPopup(false);
+    setConfiguringPrinter(null);
     
-    // 🔥 NEW: Sync to database after adding printer
+    // 🔥 NEW: Sync to database after assigning sizes
     await syncConfigsToDatabase(newConfigs);
   };
 
@@ -721,37 +754,20 @@ const PrinterConfig: React.FC<PrinterConfigProps> = ({
       <div className="card p-6 shadow-large">
         <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center">
           <Monitor className="h-5 w-5 mr-2" />
-          Quick Configuration
+          Smart Printer Configuration
         </h3>
         
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="space-y-3">
             <div className="form-group">
-              <label className="form-label">Select Paper Size</label>
-              <select
-                value={selectedSize}
-                onChange={(e) => setSelectedSize(e.target.value as PaperSize)}
-                className="input cursor-pointer"
-              >
-                {allPaperSizes.map(size => (
-                  <option key={size} value={size}>
-                    {size} {availablePaperSizes.find(s => s.key === size)?.description ? `(${getPaperSizeDescription(size)})` : ''}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <div className="space-y-3">
-            <div className="form-group">
-              <label className="form-label">Add Printer to {selectedSize}</label>
+              <label className="form-label">Select Printer</label>
               <div className="flex gap-3">
                 <select
                   value={selectedPrinter}
                   onChange={(e) => setSelectedPrinter(e.target.value)}
                   className="input flex-1 cursor-pointer"
                 >
-                  <option value="">Select a printer to assign</option>
+                  <option value="">Select a printer to configure</option>
                   {printers.map(printer => (
                     <option key={printer.name} value={printer.name}>
                       {printer.name}{printer.isVirtual ? ' (Virtual)' : ''}
@@ -759,23 +775,101 @@ const PrinterConfig: React.FC<PrinterConfigProps> = ({
                   ))}
                 </select>
                 <button
-                  onClick={handleAddPrinter}
+                  onClick={() => {
+                    const printer = printers.find(p => p.name === selectedPrinter);
+                    if (printer) {
+                      setConfiguringPrinter(printer);
+                      const currentAssignedSizes = new Set<string>();
+                      configs.forEach(c => {
+                        if (c.printers.includes(printer.name)) {
+                          currentAssignedSizes.add(c.paperSize);
+                        }
+                      });
+                      setSmartPopupSelectedSizes(currentAssignedSizes);
+                      setShowSmartPopup(true);
+                    }
+                  }}
                   disabled={!selectedPrinter || isSyncing}
                   className="btn-primary px-6 shadow-large hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Assign
+                  <Settings className="h-4 w-4 mr-2" />
+                  Configure Sizes
                 </button>
               </div>
             </div>
           </div>
         </div>
       </div>
+      
+      {/* Smart Configuration Popup Modal */}
+      {showSmartPopup && configuringPrinter && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
+          <div className="card w-full max-w-2xl bg-white dark:bg-gray-800 shadow-2xl animate-scale-in flex flex-col max-h-[85vh]">
+            <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-gray-700 shrink-0">
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center">
+                <Monitor className="h-5 w-5 mr-2 text-blue-500" />
+                Configure Sizes: {configuringPrinter.name}
+              </h3>
+              <button
+                onClick={() => setShowSmartPopup(false)}
+                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+              >
+                <X className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+              </button>
+            </div>
+            
+            <div className="p-6 overflow-y-auto flex-1">
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                Select the paper sizes you want to map to this printer. The sizes below are automatically populated based on what this specific printer driver supports!
+              </p>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                {/* We combine defaults and the printer's true supported sizes to make sure common sizes are clickable even if driver naming is weird */}
+                {Array.from(new Set([...DEFAULT_PAPER_SIZES, ...(configuringPrinter.supportedPaperSizes || [])])).sort().map(size => (
+                  <label key={size} className="flex items-start p-3 border border-gray-200 dark:border-gray-700 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                    <div className="flex items-center h-5">
+                      <input
+                        type="checkbox"
+                        checked={smartPopupSelectedSizes.has(size)}
+                        onChange={(e) => {
+                          const newSet = new Set(smartPopupSelectedSizes);
+                          if (e.target.checked) newSet.add(size);
+                          else newSet.delete(size);
+                          setSmartPopupSelectedSizes(newSet);
+                        }}
+                        className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+                      />
+                    </div>
+                    <div className="ml-3 text-sm">
+                      <span className="font-medium text-gray-900 dark:text-gray-300 break-all">{size}</span>
+                    </div>
+                  </label>
+                ))}
+              </div>
+            </div>
+            
+            <div className="p-6 border-t border-gray-100 dark:border-gray-700 flex justify-end gap-3 shrink-0">
+              <button
+                onClick={() => setShowSmartPopup(false)}
+                className="btn-secondary"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleAddPrinter}
+                className="btn-primary px-6"
+              >
+                Save Configuration
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* COMPLETELY FIXED: Perfect Drag & Drop System */}
       <DragDropContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 flex-1">
-          {allPaperSizes.map((size, index) => {
+          {displayPaperSizes.map((size, index) => {
             const sizeConfig = getConfigForSize(size);
             return (
               <div 
@@ -851,13 +945,7 @@ const PrinterConfig: React.FC<PrinterConfigProps> = ({
                                         ? 'bg-white dark:bg-gray-800 shadow-2xl z-50 border-2 border-blue-400 transform rotate-2' 
                                         : 'bg-white dark:bg-gray-800 hover:shadow-md border border-gray-200 dark:border-gray-600'
                                     }`}
-                                    style={{
-                                      ...provided.draggableProps.style,
-                                      // CRITICAL: Ensure proper positioning during drag
-                                      position: snapshot.isDragging ? 'fixed' : 'relative',
-                                      zIndex: snapshot.isDragging ? 9999 : 'auto',
-                                      pointerEvents: snapshot.isDragging ? 'none' : 'auto'
-                                    }}
+                                    style={provided.draggableProps.style}
                                   >
                                     <div className="flex items-center flex-1 min-w-0">
                                       <span 

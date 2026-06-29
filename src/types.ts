@@ -83,7 +83,7 @@ export interface Printer {
   status: string;
   isVirtual?: boolean;
   default: boolean;
-  supportedSizes?: PaperSize[];
+  supportedPaperSizes?: string[];
   supportsColor?: boolean;
 }
 
