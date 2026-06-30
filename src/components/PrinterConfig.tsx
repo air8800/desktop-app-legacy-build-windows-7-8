@@ -47,6 +47,7 @@ const PrinterConfig: React.FC<PrinterConfigProps> = ({
   const [showPrinterSelectModal, setShowPrinterSelectModal] = useState(false);
   const [configuringPrinter, setConfiguringPrinter] = useState<Printer | null>(null);
   const [smartPopupSelectedSizes, setSmartPopupSelectedSizes] = useState<Set<string>>(new Set());
+  const [sizeSearchQuery, setSizeSearchQuery] = useState('');
 
   const customSizeKeys = customSizes.map(s => s.key || s);
   const allPaperSizes = [...DEFAULT_PAPER_SIZES, ...customSizeKeys];
@@ -788,13 +789,7 @@ const PrinterConfig: React.FC<PrinterConfigProps> = ({
               <label className="form-label">Select Paper Size</label>
               <select
                 value={selectedSize}
-                onChange={(e) => {
-                  if (e.target.value === 'ADD_MORE') {
-                    setShowPrinterSelectModal(true);
-                  } else {
-                    setSelectedSize(e.target.value as PaperSize);
-                  }
-                }}
+                onChange={(e) => setSelectedSize(e.target.value as PaperSize)}
                 className="input cursor-pointer"
               >
                 {displayPaperSizes.map(size => (
@@ -802,10 +797,17 @@ const PrinterConfig: React.FC<PrinterConfigProps> = ({
                     {size} {availablePaperSizes.find(s => s.key === size)?.description ? `(${getPaperSizeDescription(size)})` : ''}
                   </option>
                 ))}
-                <option disabled>──────────</option>
-                <option value="ADD_MORE" className="font-bold text-blue-600">➕ Configure Advanced Sizes...</option>
               </select>
             </div>
+
+            {/* Configure Advanced Sizes button - clean, separate from the dropdown */}
+            <button
+              onClick={() => setShowPrinterSelectModal(true)}
+              className="w-full mt-2 flex items-center justify-center gap-2 px-4 py-2 rounded-lg border border-dashed border-blue-400 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors text-sm font-medium"
+            >
+              <Settings className="h-4 w-4" />
+              Configure Advanced Sizes
+            </button>
           </div>
 
           <div className="space-y-3">
@@ -841,8 +843,8 @@ const PrinterConfig: React.FC<PrinterConfigProps> = ({
       {/* Printer Selector Modal for Advanced Configuration */}
       {showPrinterSelectModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
-          <div className="card w-full max-w-md bg-white dark:bg-gray-800 shadow-2xl animate-scale-in flex flex-col">
-            <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-gray-700 shrink-0">
+          <div className="card w-full max-w-md bg-white dark:bg-gray-800 shadow-2xl animate-scale-in flex flex-col max-h-[85vh]">
+            <div className="flex items-center justify-between p-5 border-b border-gray-100 dark:border-gray-700 shrink-0">
               <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center">
                 <Monitor className="h-5 w-5 mr-2 text-blue-500" />
                 Select Printer
@@ -855,9 +857,9 @@ const PrinterConfig: React.FC<PrinterConfigProps> = ({
               </button>
             </div>
             
-            <div className="p-6">
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                Choose a printer to discover and configure all the paper sizes it natively supports.
+            <div className="p-5 overflow-y-auto flex-1">
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                Select a printer to configure which paper sizes it supports.
               </p>
               
               <div className="space-y-2">
@@ -867,6 +869,7 @@ const PrinterConfig: React.FC<PrinterConfigProps> = ({
                     onClick={() => {
                       setShowPrinterSelectModal(false);
                       setConfiguringPrinter(printer);
+                      // Only pre-select sizes already assigned to this printer
                       const currentAssignedSizes = new Set<string>();
                       configs.forEach(c => {
                         if (c.printers.includes(printer.name)) {
@@ -874,14 +877,15 @@ const PrinterConfig: React.FC<PrinterConfigProps> = ({
                         }
                       });
                       setSmartPopupSelectedSizes(currentAssignedSizes);
+                      setSizeSearchQuery('');
                       setShowSmartPopup(true);
                     }}
-                    className="w-full text-left p-3 border border-gray-200 dark:border-gray-700 rounded-lg hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all flex items-center"
+                    className="w-full text-left p-3 border border-gray-200 dark:border-gray-700 rounded-xl hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all flex items-center gap-3"
                   >
-                    <div className={`w-2 h-2 rounded-full mr-3 flex-shrink-0 ${printer.status === 'Ready' ? 'bg-green-500' : 'bg-yellow-500'}`}></div>
+                    <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${printer.status === 'Ready' ? 'bg-green-500' : 'bg-yellow-500'}`}></div>
                     <div className="flex-1 min-w-0">
-                      <div className="font-medium text-gray-900 dark:text-white truncate">{printer.name}</div>
-                      <div className="text-xs text-gray-500">{printer.isVirtual ? 'Virtual Printer' : 'Physical Printer'}</div>
+                      <div className="font-semibold text-gray-900 dark:text-white truncate text-sm">{printer.name}</div>
+                      <div className="text-xs text-gray-400 mt-0.5">{printer.isVirtual ? 'Virtual Printer' : 'Physical Printer'}</div>
                     </div>
                     <ChevronRight className="h-4 w-4 text-gray-400" />
                   </button>
@@ -896,74 +900,107 @@ const PrinterConfig: React.FC<PrinterConfigProps> = ({
       {showSmartPopup && configuringPrinter && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
           <div className="card w-full max-w-2xl bg-white dark:bg-gray-800 shadow-2xl animate-scale-in flex flex-col max-h-[85vh]">
-            <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-gray-700 shrink-0">
-              <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center">
-                <Monitor className="h-5 w-5 mr-2 text-blue-500" />
-                Configure Sizes: {configuringPrinter.name}
-              </h3>
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-700 shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center shadow-soft">
+                  <Monitor className="h-4 w-4 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-gray-900 dark:text-white">Configure Sizes</h3>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{configuringPrinter.name}</p>
+                </div>
+              </div>
               <button
                 onClick={() => setShowSmartPopup(false)}
                 className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
               >
-                <X className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+                <X className="h-5 w-5 text-gray-400" />
               </button>
             </div>
-            
-            <div className="p-6 overflow-y-auto flex-1">
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                Select the paper sizes you want to map to this printer. The sizes below are automatically populated based on what this specific printer driver supports!
+
+            {/* Search bar */}
+            <div className="px-6 pt-4 pb-2 shrink-0">
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
+                Select the paper sizes you want to map to this printer.
               </p>
-              
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                {/* We combine defaults and the printer's true supported sizes to make sure common sizes are clickable even if driver naming is weird */}
-                {Array.from(new Set([...DEFAULT_PAPER_SIZES, ...(configuringPrinter.supportedPaperSizes || [])])).sort().map(size => {
-                  const isChecked = smartPopupSelectedSizes.has(size);
-                  return (
-                  <label key={size} className={`flex items-start p-3 border rounded-lg cursor-pointer transition-colors ${isChecked ? 'bg-green-50 border-green-500 dark:bg-green-900/20 dark:border-green-500' : 'border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50'}`}>
-                    <div className="flex items-center h-5">
-                      <input
-                        type="checkbox"
-                        checked={isChecked}
-                        onChange={(e) => {
-                          const newSet = new Set(smartPopupSelectedSizes);
-                          if (e.target.checked) newSet.add(size);
-                          else newSet.delete(size);
-                          setSmartPopupSelectedSizes(newSet);
-                        }}
-                        className="w-4 h-4 text-green-600 bg-gray-100 border-gray-300 rounded focus:ring-green-500 dark:focus:ring-green-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
-                      />
-                    </div>
-                    <div className="ml-3 text-sm">
-                      <span className="font-medium text-gray-900 dark:text-gray-300 break-all">{size}</span>
-                    </div>
-                  </label>
-                  );
-                })}
+              <div className="relative">
+                <svg className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                <input
+                  type="text"
+                  placeholder="Search sizes..."
+                  value={sizeSearchQuery}
+                  onChange={(e) => setSizeSearchQuery(e.target.value)}
+                  className="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
               </div>
             </div>
             
-            <div className="p-6 border-t border-gray-100 dark:border-gray-700 flex justify-end gap-3 shrink-0">
-              <button
-                onClick={() => setShowSmartPopup(false)}
-                className="btn-secondary"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleAddPrinter}
-                className="btn-primary px-6"
-              >
-                Save Configuration
-              </button>
+            {/* Size Grid */}
+            <div className="px-6 pb-4 overflow-y-auto flex-1">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                {Array.from(new Set([...DEFAULT_PAPER_SIZES, ...(configuringPrinter.supportedPaperSizes || [])])).sort()
+                  .filter(size => size.toLowerCase().includes(sizeSearchQuery.toLowerCase()))
+                  .map(size => {
+                    const isSelected = smartPopupSelectedSizes.has(size);
+                    return (
+                      <button
+                        key={size}
+                        onClick={() => {
+                          const newSet = new Set(smartPopupSelectedSizes);
+                          if (isSelected) newSet.delete(size);
+                          else newSet.add(size);
+                          setSmartPopupSelectedSizes(newSet);
+                        }}
+                        className={`px-3 py-2.5 rounded-lg text-sm font-medium text-center transition-all duration-150 border ${
+                          isSelected
+                            ? 'bg-green-500 border-green-500 text-white shadow-sm'
+                            : 'bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:border-green-400 hover:bg-green-50 dark:hover:bg-green-900/20'
+                        }`}
+                      >
+                        {size}
+                      </button>
+                    );
+                  })
+                }
+              </div>
+              {Array.from(new Set([...DEFAULT_PAPER_SIZES, ...(configuringPrinter.supportedPaperSizes || [])])).filter(s => s.toLowerCase().includes(sizeSearchQuery.toLowerCase())).length === 0 && (
+                <div className="text-center py-8 text-sm text-gray-400">
+                  No sizes match "{sizeSearchQuery}"
+                </div>
+              )}
+            </div>
+
+            {/* Selected count + actions */}
+            <div className="px-6 py-4 border-t border-gray-100 dark:border-gray-700 flex items-center justify-between shrink-0">
+              <span className="text-sm text-gray-500 dark:text-gray-400">
+                {smartPopupSelectedSizes.size} size{smartPopupSelectedSizes.size !== 1 ? 's' : ''} selected
+              </span>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowSmartPopup(false)}
+                  className="btn-secondary"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleAddPrinter}
+                  className="btn-primary px-6"
+                >
+                  Save Configuration
+                </button>
+              </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* COMPLETELY FIXED: Perfect Drag & Drop System */}
+      {/* Drag & Drop System */}
       <DragDropContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 flex-1">
-          {displayPaperSizes.map((size, index) => {
+          {displayPaperSizes.map((size) => {
             const sizeConfig = getConfigForSize(size);
             return (
               <div 
@@ -997,109 +1034,110 @@ const PrinterConfig: React.FC<PrinterConfigProps> = ({
                   )}
                 </div>
                 
-                {/* PERFECT: Droppable Area with Fixed Positioning */}
+                {/* Droppable Area */}
                 <Droppable droppableId={size}>
                   {(provided, snapshot) => (
                     <div
                       ref={provided.innerRef}
                       {...provided.droppableProps}
-                      className={`flex-1 flex flex-col space-y-2 p-3 rounded-lg border-2 border-dashed transition-all duration-200 min-h-[120px] ${
+                      style={{ minHeight: 120 }}
+                      className={`flex-1 flex flex-col p-2 rounded-lg border-2 border-dashed transition-all duration-200 ${
                         snapshot.isDraggingOver 
                           ? 'border-blue-400 bg-blue-50 dark:bg-blue-900/30' 
                           : 'border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700'
                       }`}
                     >
-                      {sizeConfig.printers.length === 0 ? (
+                      {sizeConfig.printers.length === 0 && !snapshot.isDraggingOver && (
                         <div className="text-center py-4 flex-1 flex flex-col justify-center">
-                          <Wifi className={`h-6 w-6 mx-auto mb-2 ${snapshot.isDraggingOver ? 'text-blue-500' : 'text-gray-400'}`} />
-                          <p className={`font-medium text-xs ${snapshot.isDraggingOver ? 'text-blue-600 dark:text-blue-400' : 'text-gray-500 dark:text-gray-400'}`}>
-                            {snapshot.isDraggingOver ? 'Drop here' : 'No printers'}
-                          </p>
+                          <Wifi className="h-6 w-6 mx-auto mb-2 text-gray-400" />
+                          <p className="font-medium text-xs text-gray-500 dark:text-gray-400">No printers</p>
                           <p className="text-xs text-gray-400 dark:text-gray-500">Drag printers here</p>
                         </div>
-                      ) : (
-                        <div className="space-y-2 flex-1">
-                          {sizeConfig.printers.map((printerName, printerIndex) => {
-                            const printer = printers.find(p => p.name === printerName);
-                            const isDragging = draggedItem === `${size}-${printerName}`;
-                            
-                            return (
-                              <Draggable 
-                                key={`${size}-${printerName}`} 
-                                draggableId={`${size}-${printerName}`} 
-                                index={printerIndex}
-                              >
-                                {(provided, snapshot) => (
-                                  <div
-                                    ref={provided.innerRef}
-                                    {...provided.draggableProps}
-                                    className={`flex items-center justify-between p-2 rounded-lg transition-all duration-200 ${
-                                      snapshot.isDragging 
-                                        ? 'bg-white dark:bg-gray-800 shadow-2xl z-50 border-2 border-blue-400 transform rotate-2' 
-                                        : 'bg-white dark:bg-gray-800 hover:shadow-md border border-gray-200 dark:border-gray-600'
-                                    }`}
-                                    style={provided.draggableProps.style}
-                                  >
-                                    <div className="flex items-center flex-1 min-w-0">
-                                      <span 
-                                        {...provided.dragHandleProps} 
-                                        className="mr-2 cursor-grab active:cursor-grabbing flex-shrink-0 p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
-                                      >
-                                        <GripVertical className="h-3 w-3 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400" />
-                                      </span>
-                                      
-                                      <div className="flex items-center flex-1 min-w-0">
-                                        <div className={`w-2 h-2 rounded-full mr-2 flex-shrink-0 ${
-                                          printer?.status === 'Ready' ? 'bg-green-500' : 'bg-yellow-500'
-                                        }`}></div>
-                                        <div className="flex-1 min-w-0">
-                                          <p className="font-medium text-gray-900 dark:text-white text-xs truncate" title={printerName}>
-                                            {printerName}
-                                          </p>
-                                          <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                                            {printer?.status || 'Unknown'}
-                                            {printer?.default && ' • Default'}
-                                          </p>
-                                        </div>
-                                      </div>
-                                    </div>
-                                    
-                                    <div className="flex items-center gap-1">
-                                      {/* 🔥 ENHANCED: Test printer with paper size */}
-                                      <button
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          testPrinter(printerName);
-                                        }}
-                                        disabled={testingPrinter === printerName}
-                                        className="p-1 text-blue-500 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded transition-all duration-200 ml-1 flex-shrink-0"
-                                        title={`Test printer with ${size} paper`}
-                                      >
-                                        {testingPrinter === printerName ? (
-                                          <RefreshCw className="h-3 w-3 animate-spin" />
-                                        ) : (
-                                          <RefreshCw className="h-3 w-3" />
-                                        )}
-                                      </button>
-                                      
-                                      <button
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          handleRemovePrinter(size, printerName);
-                                        }}
-                                        className="p-1 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/30 rounded transition-all duration-200 ml-1 flex-shrink-0"
-                                        title="Remove printer"
-                                      >
-                                        <Trash2 className="h-3 w-3" />
-                                      </button>
-                                    </div>
-                                  </div>
-                                )}
-                              </Draggable>
-                            );
-                          })}
+                      )}
+                      {snapshot.isDraggingOver && sizeConfig.printers.length === 0 && (
+                        <div className="text-center py-4 flex-1 flex flex-col justify-center">
+                          <p className="font-medium text-xs text-blue-600 dark:text-blue-400">Drop here</p>
                         </div>
                       )}
+                      {sizeConfig.printers.map((printerName, printerIndex) => {
+                        const printer = printers.find(p => p.name === printerName);
+                        return (
+                          <Draggable 
+                            key={`${size}-${printerName}`} 
+                            draggableId={`${size}-${printerName}`} 
+                            index={printerIndex}
+                          >
+                            {(draggableProvided, draggableSnapshot) => (
+                              <div
+                                ref={draggableProvided.innerRef}
+                                {...draggableProvided.draggableProps}
+                                style={{
+                                  ...draggableProvided.draggableProps.style,
+                                  marginBottom: 6
+                                }}
+                                className={`flex items-center justify-between p-2 rounded-lg ${
+                                  draggableSnapshot.isDragging 
+                                    ? 'bg-white dark:bg-gray-800 shadow-2xl border-2 border-blue-400' 
+                                    : 'bg-white dark:bg-gray-800 hover:shadow-md border border-gray-200 dark:border-gray-600'
+                                }`}
+                              >
+                                <div className="flex items-center flex-1 min-w-0">
+                                  <span 
+                                    {...draggableProvided.dragHandleProps} 
+                                    className="mr-2 cursor-grab active:cursor-grabbing flex-shrink-0 p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
+                                  >
+                                    <GripVertical className="h-3 w-3 text-gray-400" />
+                                  </span>
+                                  
+                                  <div className="flex items-center flex-1 min-w-0">
+                                    <div className={`w-2 h-2 rounded-full mr-2 flex-shrink-0 ${
+                                      printer?.status === 'Ready' ? 'bg-green-500' : 'bg-yellow-500'
+                                    }`}></div>
+                                    <div className="flex-1 min-w-0">
+                                      <p className="font-medium text-gray-900 dark:text-white text-xs truncate" title={printerName}>
+                                        {printerName}
+                                      </p>
+                                      <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                                        {printer?.status || 'Unknown'}
+                                        {printer?.default && ' • Default'}
+                                      </p>
+                                    </div>
+                                  </div>
+                                </div>
+                                    
+                                <div className="flex items-center gap-1">
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      testPrinter(printerName);
+                                    }}
+                                    disabled={testingPrinter === printerName}
+                                    className="p-1 text-blue-500 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded transition-all duration-200 ml-1 flex-shrink-0"
+                                    title={`Test printer with ${size} paper`}
+                                  >
+                                    {testingPrinter === printerName ? (
+                                      <RefreshCw className="h-3 w-3 animate-spin" />
+                                    ) : (
+                                      <RefreshCw className="h-3 w-3" />
+                                    )}
+                                  </button>
+                                  
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleRemovePrinter(size, printerName);
+                                    }}
+                                    className="p-1 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/30 rounded transition-all duration-200 ml-1 flex-shrink-0"
+                                    title="Remove printer"
+                                  >
+                                    <Trash2 className="h-3 w-3" />
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+                          </Draggable>
+                        );
+                      })}
                       {provided.placeholder}
                     </div>
                   )}
