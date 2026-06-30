@@ -786,49 +786,80 @@ const PrinterConfig: React.FC<PrinterConfigProps> = ({
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="space-y-3">
             <div className="form-group">
-              <label className="form-label">Select Paper Size</label>
+              <label className="form-label">Select Printer</label>
               <select
-                value={selectedSize}
-                onChange={(e) => setSelectedSize(e.target.value as PaperSize)}
+                value={selectedPrinter}
+                onChange={(e) => {
+                  setSelectedPrinter(e.target.value);
+                  const p = printers.find(pr => pr.name === e.target.value);
+                  if (p && p.supportedPaperSizes && p.supportedPaperSizes.length > 0) {
+                    setSelectedSize(p.supportedPaperSizes[0] as PaperSize);
+                  } else {
+                    setSelectedSize('A4');
+                  }
+                }}
                 className="input cursor-pointer"
               >
-                {displayPaperSizes.map(size => (
-                  <option key={size} value={size}>
-                    {size} {availablePaperSizes.find(s => s.key === size)?.description ? `(${getPaperSizeDescription(size)})` : ''}
+                <option value="">Select a printer...</option>
+                {printers.map(printer => (
+                  <option key={printer.name} value={printer.name}>
+                    {printer.name}{printer.isVirtual ? ' (Virtual)' : ''}
                   </option>
                 ))}
               </select>
             </div>
 
-            {/* Configure Advanced Sizes button - clean, separate from the dropdown */}
             <button
-              onClick={() => setShowPrinterSelectModal(true)}
-              className="w-full mt-2 flex items-center justify-center gap-2 px-4 py-2 rounded-lg border border-dashed border-blue-400 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors text-sm font-medium"
+              onClick={() => {
+                const printer = printers.find(p => p.name === selectedPrinter);
+                if (printer) {
+                  setConfiguringPrinter(printer);
+                  const currentAssignedSizes = new Set<string>();
+                  configs.forEach(c => {
+                    if (c.printers.includes(printer.name)) {
+                      currentAssignedSizes.add(c.paperSize);
+                    }
+                  });
+                  setSmartPopupSelectedSizes(currentAssignedSizes);
+                  setSizeSearchQuery('');
+                  setShowSmartPopup(true);
+                }
+              }}
+              disabled={!selectedPrinter}
+              className="w-full mt-2 flex items-center justify-center gap-2 px-4 py-2 rounded-lg border border-dashed border-blue-400 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Settings className="h-4 w-4" />
-              Configure Advanced Sizes
+              Configure All Sizes For This Printer
             </button>
           </div>
 
           <div className="space-y-3">
             <div className="form-group">
-              <label className="form-label">Add Printer to {selectedSize}</label>
+              <label className="form-label">Assign Size to {selectedPrinter || 'Printer'}</label>
               <div className="flex gap-3">
                 <select
-                  value={selectedPrinter}
-                  onChange={(e) => setSelectedPrinter(e.target.value)}
+                  value={selectedSize}
+                  onChange={(e) => setSelectedSize(e.target.value as PaperSize)}
                   className="input flex-1 cursor-pointer"
+                  disabled={!selectedPrinter}
                 >
-                  <option value="">Select a printer to assign</option>
-                  {printers.map(printer => (
-                    <option key={printer.name} value={printer.name}>
-                      {printer.name}{printer.isVirtual ? ' (Virtual)' : ''}
-                    </option>
-                  ))}
+                  {selectedPrinter ? (
+                    (() => {
+                      const p = printers.find(pr => pr.name === selectedPrinter);
+                      const supported = p?.supportedPaperSizes || DEFAULT_PAPER_SIZES;
+                      return Array.from(new Set(supported)).sort().map(size => (
+                        <option key={size} value={size as string}>
+                          {size as string} {availablePaperSizes.find(s => s.key === size)?.description ? `(${getPaperSizeDescription(size as string)})` : ''}
+                        </option>
+                      ));
+                    })()
+                  ) : (
+                    <option value="">Select a printer first</option>
+                  )}
                 </select>
                 <button
                   onClick={handleAddPrinterQuick}
-                  disabled={!selectedPrinter || isSyncing}
+                  disabled={!selectedPrinter || !selectedSize || isSyncing}
                   className="btn-primary px-6 shadow-large hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Plus className="h-4 w-4 mr-2" />
@@ -840,61 +871,7 @@ const PrinterConfig: React.FC<PrinterConfigProps> = ({
         </div>
       </div>
       
-      {/* Printer Selector Modal for Advanced Configuration */}
-      {showPrinterSelectModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
-          <div className="card w-full max-w-md bg-white dark:bg-gray-800 shadow-2xl animate-scale-in flex flex-col max-h-[85vh]">
-            <div className="flex items-center justify-between p-5 border-b border-gray-100 dark:border-gray-700 shrink-0">
-              <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center">
-                <Monitor className="h-5 w-5 mr-2 text-blue-500" />
-                Select Printer
-              </h3>
-              <button
-                onClick={() => setShowPrinterSelectModal(false)}
-                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-              >
-                <X className="h-5 w-5 text-gray-500 dark:text-gray-400" />
-              </button>
-            </div>
-            
-            <div className="p-5 overflow-y-auto flex-1">
-              <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-                Select a printer to configure which paper sizes it supports.
-              </p>
-              
-              <div className="space-y-2">
-                {printers.map(printer => (
-                  <button
-                    key={printer.name}
-                    onClick={() => {
-                      setShowPrinterSelectModal(false);
-                      setConfiguringPrinter(printer);
-                      // Only pre-select sizes already assigned to this printer
-                      const currentAssignedSizes = new Set<string>();
-                      configs.forEach(c => {
-                        if (c.printers.includes(printer.name)) {
-                          currentAssignedSizes.add(c.paperSize);
-                        }
-                      });
-                      setSmartPopupSelectedSizes(currentAssignedSizes);
-                      setSizeSearchQuery('');
-                      setShowSmartPopup(true);
-                    }}
-                    className="w-full text-left p-3 border border-gray-200 dark:border-gray-700 rounded-xl hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all flex items-center gap-3"
-                  >
-                    <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${printer.status === 'Ready' ? 'bg-green-500' : 'bg-yellow-500'}`}></div>
-                    <div className="flex-1 min-w-0">
-                      <div className="font-semibold text-gray-900 dark:text-white truncate text-sm">{printer.name}</div>
-                      <div className="text-xs text-gray-400 mt-0.5">{printer.isVirtual ? 'Virtual Printer' : 'Physical Printer'}</div>
-                    </div>
-                    <ChevronRight className="h-4 w-4 text-gray-400" />
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Printer Selector Modal removed - using inline selection instead */}
       
       {/* Smart Configuration Popup Modal */}
       {showSmartPopup && configuringPrinter && (
@@ -1041,7 +1018,7 @@ const PrinterConfig: React.FC<PrinterConfigProps> = ({
                       ref={provided.innerRef}
                       {...provided.droppableProps}
                       style={{ minHeight: 120 }}
-                      className={`flex-1 flex flex-col p-2 rounded-lg border-2 border-dashed transition-all duration-200 ${
+                      className={`flex-1 flex flex-col p-2 rounded-lg border-2 border-dashed ${
                         snapshot.isDraggingOver 
                           ? 'border-blue-400 bg-blue-50 dark:bg-blue-900/30' 
                           : 'border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700'
@@ -1059,28 +1036,26 @@ const PrinterConfig: React.FC<PrinterConfigProps> = ({
                           <p className="font-medium text-xs text-blue-600 dark:text-blue-400">Drop here</p>
                         </div>
                       )}
-                      {sizeConfig.printers.map((printerName, printerIndex) => {
-                        const printer = printers.find(p => p.name === printerName);
-                        return (
-                          <Draggable 
-                            key={`${size}-${printerName}`} 
-                            draggableId={`${size}-${printerName}`} 
-                            index={printerIndex}
-                          >
-                            {(draggableProvided, draggableSnapshot) => (
-                              <div
-                                ref={draggableProvided.innerRef}
-                                {...draggableProvided.draggableProps}
-                                style={{
-                                  ...draggableProvided.draggableProps.style,
-                                  marginBottom: 6
-                                }}
-                                className={`flex items-center justify-between p-2 rounded-lg ${
-                                  draggableSnapshot.isDragging 
-                                    ? 'bg-white dark:bg-gray-800 shadow-2xl border-2 border-blue-400' 
-                                    : 'bg-white dark:bg-gray-800 hover:shadow-md border border-gray-200 dark:border-gray-600'
-                                }`}
-                              >
+                      <div className="space-y-2 flex-1">
+                        {sizeConfig.printers.map((printerName, printerIndex) => {
+                          const printer = printers.find(p => p.name === printerName);
+                          return (
+                            <Draggable 
+                              key={`${size}-${printerName}`} 
+                              draggableId={`${size}-${printerName}`} 
+                              index={printerIndex}
+                            >
+                              {(draggableProvided, draggableSnapshot) => (
+                                <div
+                                  ref={draggableProvided.innerRef}
+                                  {...draggableProvided.draggableProps}
+                                  style={draggableProvided.draggableProps.style}
+                                  className={`flex items-center justify-between p-2 rounded-lg ${
+                                    draggableSnapshot.isDragging 
+                                      ? 'bg-white dark:bg-gray-800 shadow-2xl border-2 border-blue-400' 
+                                      : 'bg-white dark:bg-gray-800 hover:shadow-md border border-gray-200 dark:border-gray-600'
+                                  }`}
+                                >
                                 <div className="flex items-center flex-1 min-w-0">
                                   <span 
                                     {...draggableProvided.dragHandleProps} 
@@ -1138,6 +1113,7 @@ const PrinterConfig: React.FC<PrinterConfigProps> = ({
                           </Draggable>
                         );
                       })}
+                      </div>
                       {provided.placeholder}
                     </div>
                   )}
