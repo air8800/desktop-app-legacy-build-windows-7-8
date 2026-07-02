@@ -793,9 +793,11 @@ const PrinterConfig: React.FC<PrinterConfigProps> = ({
                   setSelectedPrinter(e.target.value);
                   const p = printers.find(pr => pr.name === e.target.value);
                   if (p && p.supportedPaperSizes && p.supportedPaperSizes.length > 0) {
-                    setSelectedSize(p.supportedPaperSizes[0] as PaperSize);
+                    const PRIORITY_SIZES = ['ISOA4', 'NorthAmericaLetter', 'ISOA3', 'NorthAmericaLegal', 'ISOA5'];
+                    const topSizes = PRIORITY_SIZES.filter(s => p.supportedPaperSizes!.includes(s));
+                    setSelectedSize((topSizes.length > 0 ? topSizes[0] : p.supportedPaperSizes[0]) as PaperSize);
                   } else {
-                    setSelectedSize('A4');
+                    setSelectedSize('ISOA4' as PaperSize);
                   }
                 }}
                 className="input cursor-pointer"
@@ -809,37 +811,37 @@ const PrinterConfig: React.FC<PrinterConfigProps> = ({
               </select>
             </div>
 
-            <button
-              onClick={() => {
-                const printer = printers.find(p => p.name === selectedPrinter);
-                if (printer) {
-                  setConfiguringPrinter(printer);
-                  const currentAssignedSizes = new Set<string>();
-                  configs.forEach(c => {
-                    if (c.printers.includes(printer.name)) {
-                      currentAssignedSizes.add(c.paperSize);
-                    }
-                  });
-                  setSmartPopupSelectedSizes(currentAssignedSizes);
-                  setSizeSearchQuery('');
-                  setShowSmartPopup(true);
-                }
-              }}
-              disabled={!selectedPrinter}
-              className="w-full mt-2 flex items-center justify-center gap-2 px-4 py-2 rounded-lg border border-dashed border-blue-400 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <Settings className="h-4 w-4" />
-              Configure All Sizes For This Printer
-            </button>
-          </div>
-
           <div className="space-y-3">
             <div className="form-group">
               <label className="form-label">Assign Size to {selectedPrinter || 'Printer'}</label>
               <div className="flex gap-3">
                 <select
                   value={selectedSize}
-                  onChange={(e) => setSelectedSize(e.target.value as PaperSize)}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (value === 'ALL_SIZES') {
+                      const printer = printers.find(p => p.name === selectedPrinter);
+                      if (printer) {
+                        setConfiguringPrinter(printer);
+                        const currentAssignedSizes = new Set<string>();
+                        configs.forEach(c => {
+                          if (c.printers.includes(printer.name)) {
+                            currentAssignedSizes.add(c.paperSize);
+                          }
+                        });
+                        setSmartPopupSelectedSizes(currentAssignedSizes);
+                        setSizeSearchQuery('');
+                        setShowSmartPopup(true);
+                        
+                        const supported = printer.supportedPaperSizes || DEFAULT_PAPER_SIZES;
+                        const PRIORITY_SIZES = ['ISOA4', 'NorthAmericaLetter', 'ISOA3', 'NorthAmericaLegal', 'ISOA5'];
+                        const topSizes = PRIORITY_SIZES.filter(s => supported.includes(s));
+                        setSelectedSize((topSizes.length > 0 ? topSizes[0] : supported[0]) as PaperSize);
+                      }
+                    } else {
+                      setSelectedSize(value as PaperSize);
+                    }
+                  }}
                   className="input flex-1 cursor-pointer"
                   disabled={!selectedPrinter}
                 >
@@ -847,11 +849,25 @@ const PrinterConfig: React.FC<PrinterConfigProps> = ({
                     (() => {
                       const p = printers.find(pr => pr.name === selectedPrinter);
                       const supported = p?.supportedPaperSizes || DEFAULT_PAPER_SIZES;
-                      return Array.from(new Set(supported)).sort().map(size => (
-                        <option key={size} value={size as string}>
-                          {size as string} {availablePaperSizes.find(s => s.key === size)?.description ? `(${getPaperSizeDescription(size as string)})` : ''}
-                        </option>
-                      ));
+                      const PRIORITY_SIZES = ['ISOA4', 'NorthAmericaLetter', 'ISOA3', 'NorthAmericaLegal', 'ISOA5', 'NorthAmericaExecutive', 'JISB4', 'JISB5', 'ISOA6'];
+                      let displaySizes = PRIORITY_SIZES.filter(s => supported.includes(s)).slice(0, 5);
+                      if (displaySizes.length < 5) {
+                        const remaining = supported.filter(s => !displaySizes.includes(s)).slice(0, 5 - displaySizes.length);
+                        displaySizes = [...displaySizes, ...remaining];
+                      }
+                      
+                      return (
+                        <>
+                          {displaySizes.map(size => (
+                            <option key={size} value={size as string}>
+                              {size as string} {availablePaperSizes.find(s => s.key === size)?.description ? `(${getPaperSizeDescription(size as string)})` : ''}
+                            </option>
+                          ))}
+                          <option value="ALL_SIZES" className="font-semibold text-blue-600">
+                            Configure All Sizes...
+                          </option>
+                        </>
+                      );
                     })()
                   ) : (
                     <option value="">Select a printer first</option>
