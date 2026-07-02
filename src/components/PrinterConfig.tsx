@@ -810,6 +810,7 @@ const PrinterConfig: React.FC<PrinterConfigProps> = ({
                 ))}
               </select>
             </div>
+          </div>
 
           <div className="space-y-3">
             <div className="form-group">
