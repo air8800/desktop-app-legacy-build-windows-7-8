@@ -14,6 +14,36 @@ interface PrinterConfigProps {
 
 const DEFAULT_PAPER_SIZES: PaperSize[] = ['A3', 'A4', 'A5', 'Letter', 'Legal', 'Executive'];
 
+export const getFriendlyPaperSizeName = (size: string) => {
+  const map: Record<string, string> = {
+    'ISOA0': 'A0',
+    'ISOA1': 'A1',
+    'ISOA2': 'A2',
+    'ISOA3': 'A3',
+    'ISOA4': 'A4',
+    'ISOA5': 'A5',
+    'ISOA6': 'A6',
+    'NorthAmericaLetter': 'Letter',
+    'NorthAmericaLegal': 'Legal',
+    'NorthAmericaExecutive': 'Executive',
+    'NorthAmericaTabloid': 'Tabloid',
+    'JISB4': 'B4',
+    'JISB5': 'B5',
+    'ISOA3Extra': 'A3 Extra',
+    'ISOA4Extra': 'A4 Extra',
+    'ISOA4Rotated': 'A4 (Rotated)',
+    'ISOA5Rotated': 'A5 (Rotated)',
+    'ISOA6Rotated': 'A6 (Rotated)',
+  };
+  
+  // Replace envelope and common extra strings to look nicer
+  let friendlyName = map[size] || size;
+  if (!map[size]) {
+    friendlyName = friendlyName.replace('Envelope', ' Envelope').replace('Extra', ' Extra').trim();
+  }
+  return friendlyName;
+};
+
 const PrinterConfig: React.FC<PrinterConfigProps> = ({ 
   printers, 
   configs, 
@@ -861,11 +891,11 @@ const PrinterConfig: React.FC<PrinterConfigProps> = ({
                         <>
                           {displaySizes.map(size => (
                             <option key={size} value={size as string}>
-                              {size as string} {availablePaperSizes.find(s => s.key === size)?.description ? `(${getPaperSizeDescription(size as string)})` : ''}
+                              {getFriendlyPaperSizeName(size as string)} {availablePaperSizes.find(s => s.key === size)?.description ? `(${getPaperSizeDescription(size as string)})` : ''}
                             </option>
                           ))}
-                          <option value="ALL_SIZES" className="font-semibold text-blue-600">
-                            Configure All Sizes...
+                          <option value="ALL_SIZES" className="font-semibold text-gray-700">
+                            --- Configure All Sizes ---
                           </option>
                         </>
                       );
@@ -892,7 +922,7 @@ const PrinterConfig: React.FC<PrinterConfigProps> = ({
       
       {/* Smart Configuration Popup Modal */}
       {showSmartPopup && configuringPrinter && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
           <div className="card w-full max-w-2xl bg-white dark:bg-gray-800 shadow-2xl animate-scale-in flex flex-col max-h-[85vh]">
             {/* Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-700 shrink-0">
@@ -954,7 +984,7 @@ const PrinterConfig: React.FC<PrinterConfigProps> = ({
                             : 'bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:border-green-400 hover:bg-green-50 dark:hover:bg-green-900/20'
                         }`}
                       >
-                        {size}
+                        {getFriendlyPaperSizeName(size)}
                       </button>
                     );
                   })
